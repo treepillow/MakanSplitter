@@ -23,6 +23,7 @@ export interface Participant {
   selectedDishIds: string[]; // IDs of dishes they selected
   amountOwed?: number; // Calculated after lock
   hasPaid: boolean;
+  paidBy?: string; // Who marked this as paid
   paidAt?: string;
 }
 
