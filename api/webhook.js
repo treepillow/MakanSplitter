@@ -270,10 +270,18 @@ async function handleDishSelection(data, telegramUserId, telegramUsername, inlin
 // Handle lock & calculate
 async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMessage) {
   // Parse: lock_billId
+  // Format: lock_bill_TIMESTAMP
   const parts = data.split('_');
-  const billId = parts[1];
+  const billIndex = parts.indexOf('bill');
 
-  console.log('Lock bill:', { billId, telegramUserId });
+  if (billIndex === -1) {
+    console.error('Invalid lock callback data:', data);
+    return;
+  }
+
+  const billId = parts.slice(billIndex).join('_'); // bill_TIMESTAMP
+
+  console.log('Lock bill:', { billId, telegramUserId, rawData: data });
 
   try {
     const billRef = db.collection('bills').doc(billId);
@@ -324,11 +332,20 @@ async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMes
 // Handle mark as paid
 async function handleMarkPaid(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage) {
   // Parse: paid_billId_participantTelegramId
+  // Format: paid_bill_TIMESTAMP_TELEGRAMID
   const parts = data.split('_');
-  const billId = parts[1];
-  const participantTelegramId = parseInt(parts[2]);
+  const billIndex = parts.indexOf('bill');
 
-  console.log('Mark paid:', { billId, participantTelegramId, markedBy: telegramUserId });
+  if (billIndex === -1) {
+    console.error('Invalid paid callback data:', data);
+    return;
+  }
+
+  // billId is bill_TIMESTAMP, participantId is the number after that
+  const billId = parts.slice(billIndex, billIndex + 2).join('_'); // bill_TIMESTAMP
+  const participantTelegramId = parseInt(parts[billIndex + 2]); // The telegram ID number
+
+  console.log('Mark paid:', { billId, participantTelegramId, markedBy: telegramUserId, rawData: data });
 
   try {
     const billRef = db.collection('bills').doc(billId);
