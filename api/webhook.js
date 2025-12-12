@@ -49,8 +49,11 @@ module.exports = async (req, res) => {
     }
 
     // Handle callback queries (when user clicks button)
+    // Process in background - don't await
     if (update.callback_query) {
-      await handleCallbackQuery(update.callback_query);
+      handleCallbackQuery(update.callback_query).catch(err =>
+        console.error('Background callback error:', err)
+      );
     }
 
     res.status(200).json({ ok: true });
