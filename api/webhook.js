@@ -152,11 +152,14 @@ async function handleCallbackQuery(callbackQuery) {
   }
 
   try {
+    // Respond immediately to Telegram to prevent timeout
+    await answerCallback(callbackQuery.id, '⏳ Updating...');
+
     const billRef = db.collection('bills').doc(billId);
     const billDoc = await billRef.get();
 
     if (!billDoc.exists) {
-      await answerCallback(callbackQuery.id, '❌ Bill not found');
+      console.error('Bill not found:', billId);
       return;
     }
 
@@ -165,14 +168,14 @@ async function handleCallbackQuery(callbackQuery) {
     // Find person
     const personIndex = bill.people.findIndex(p => p.id === personId);
     if (personIndex === -1) {
-      await answerCallback(callbackQuery.id, '❌ Person not found');
+      console.error('Person not found:', personId);
       return;
     }
 
     const person = bill.people[personIndex];
 
     if (person.hasPaid) {
-      await answerCallback(callbackQuery.id, '✅ Already marked as paid!');
+      console.log('Already marked as paid:', person.name);
       return;
     }
 
@@ -204,10 +207,9 @@ async function handleCallbackQuery(callbackQuery) {
       }),
     });
 
-    await answerCallback(callbackQuery.id, `✅ ${person.name} marked as paid by ${telegramName}!`);
+    console.log(`✅ ${person.name} marked as paid by ${telegramName}`);
   } catch (error) {
     console.error('Error handling callback:', error);
-    await answerCallback(callbackQuery.id, '❌ Error updating status');
   }
 }
 
