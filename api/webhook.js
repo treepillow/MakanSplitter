@@ -49,8 +49,11 @@ module.exports = async (req, res) => {
     }
 
     // Handle callback queries (when user clicks button)
-    // Process in background - don't await
     if (update.callback_query) {
+      // Answer callback immediately to prevent loading state
+      await answerCallback(update.callback_query.id, '⏳ Updating...');
+
+      // Process in background - don't await
       handleCallbackQuery(update.callback_query).catch(err =>
         console.error('Background callback error:', err)
       );
@@ -155,9 +158,6 @@ async function handleCallbackQuery(callbackQuery) {
   }
 
   try {
-    // Respond immediately to Telegram to prevent timeout
-    await answerCallback(callbackQuery.id, '⏳ Updating...');
-
     const billRef = db.collection('bills').doc(billId);
     const billDoc = await billRef.get();
 
