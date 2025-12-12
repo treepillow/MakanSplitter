@@ -155,11 +155,26 @@ async function handleCallbackQuery(callbackQuery) {
   const chatId = !isInlineMessage ? callbackQuery.message.chat.id : null;
   const messageId = !isInlineMessage ? callbackQuery.message.message_id : null;
 
-  const [action, billId, personId] = data.split('_');
+  // Parse callback data: "paid_bill_ID_person_ID"
+  const parts = data.split('_');
+  const action = parts[0];
 
   if (action !== 'paid') {
     return;
   }
+
+  // Extract bill ID and person ID from the parts
+  // Format: paid_bill_TIMESTAMP_person_TIMESTAMP_RANDOM
+  const billIdIndex = parts.indexOf('bill');
+  const personIdIndex = parts.indexOf('person');
+
+  if (billIdIndex === -1 || personIdIndex === -1) {
+    console.error('Invalid callback data format:', data);
+    return;
+  }
+
+  const billId = parts.slice(billIdIndex, personIdIndex).join('_');
+  const personId = parts.slice(personIdIndex).join('_');
 
   try {
     const billRef = db.collection('bills').doc(billId);
