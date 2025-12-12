@@ -219,23 +219,32 @@ async function handleCallbackQuery(callbackQuery) {
 
     if (isInlineMessage) {
       console.log('Updating inline message:', inlineMessageId);
+      console.log('Updated message text:', updatedMessage);
+      console.log('Updated keyboard:', JSON.stringify(updatedKeyboard, null, 2));
+
+      const requestBody = {
+        inline_message_id: inlineMessageId,
+        text: updatedMessage,
+        parse_mode: 'Markdown',
+        reply_markup: updatedKeyboard,
+      };
+
+      console.log('Edit request body:', JSON.stringify(requestBody, null, 2));
 
       const editResponse = await fetch(`${TELEGRAM_API}/editMessageText`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inline_message_id: inlineMessageId,
-          text: updatedMessage,
-          parse_mode: 'Markdown',
-          reply_markup: updatedKeyboard,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const editResult = await editResponse.json();
-      console.log('Edit inline message result:', editResult);
+      console.log('Edit inline message HTTP status:', editResponse.status);
+      console.log('Edit inline message result:', JSON.stringify(editResult, null, 2));
 
       if (!editResult.ok) {
         console.error('Failed to edit inline message:', editResult);
+        console.error('Error code:', editResult.error_code);
+        console.error('Error description:', editResult.description);
       } else {
         console.log(`✅ ${person.name} marked as paid by ${telegramName}`);
       }
