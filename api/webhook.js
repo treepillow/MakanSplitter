@@ -198,7 +198,9 @@ async function handleCallbackQuery(callbackQuery) {
     const updatedMessage = formatBillMessage(bill);
     const updatedKeyboard = createInlineKeyboard(bill);
 
-    await fetch(`${TELEGRAM_API}/editMessageText`, {
+    console.log('Updating message for chatId:', chatId, 'messageId:', messageId);
+
+    const editResponse = await fetch(`${TELEGRAM_API}/editMessageText`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -210,7 +212,14 @@ async function handleCallbackQuery(callbackQuery) {
       }),
     });
 
-    console.log(`✅ ${person.name} marked as paid by ${telegramName}`);
+    const editResult = await editResponse.json();
+    console.log('Edit message result:', editResult);
+
+    if (!editResult.ok) {
+      console.error('Failed to edit message:', editResult);
+    } else {
+      console.log(`✅ ${person.name} marked as paid by ${telegramName}`);
+    }
   } catch (error) {
     console.error('Error handling callback:', error);
   }
