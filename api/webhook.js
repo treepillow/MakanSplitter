@@ -50,13 +50,8 @@ module.exports = async (req, res) => {
 
     // Handle callback queries (when user clicks button)
     if (update.callback_query) {
-      // Answer callback immediately to prevent loading state
-      await answerCallback(update.callback_query.id, '⏳ Updating...');
-
-      // Process in background - don't await
-      handleCallbackQuery(update.callback_query).catch(err =>
-        console.error('Background callback error:', err)
-      );
+      // Process callback and answer it
+      await handleCallbackQuery(update.callback_query);
     }
 
     res.status(200).json({ ok: true });
@@ -141,6 +136,9 @@ async function handleInlineQuery(inlineQuery) {
 
 // Handle callback queries (button clicks)
 async function handleCallbackQuery(callbackQuery) {
+  // Answer callback immediately to prevent loading state
+  await answerCallback(callbackQuery.id, '⏳ Updating...');
+
   const data = callbackQuery.data;
 
   // Get Telegram user info
