@@ -37,6 +37,12 @@ module.exports = async (req, res) => {
     const update = req.body;
     console.log('Received update:', JSON.stringify(update, null, 2));
 
+    // Check if Firebase is initialized
+    if (!admin.apps.length) {
+      console.error('Firebase not initialized');
+      return res.status(500).json({ error: 'Firebase not initialized' });
+    }
+
     // Handle inline queries (when user types @bot in chat)
     if (update.inline_query) {
       await handleInlineQuery(update.inline_query);
@@ -50,7 +56,7 @@ module.exports = async (req, res) => {
     res.status(200).json({ ok: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 };
 
@@ -73,10 +79,15 @@ async function handleInlineQuery(inlineQuery) {
   }
 
   try {
+    console.log('Searching for bill:', query);
+
     // Get bill from Firestore
     const billDoc = await db.collection('bills').doc(query).get();
 
+    console.log('Bill exists:', billDoc.exists);
+
     if (!billDoc.exists) {
+      console.log('Bill not found, returning empty results');
       await fetch(`${TELEGRAM_API}/answerInlineQuery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
