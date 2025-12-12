@@ -141,8 +141,6 @@ async function handleInlineQuery(inlineQuery) {
 
 // Handle callback queries (button clicks)
 async function handleCallbackQuery(callbackQuery) {
-  const chatId = callbackQuery.message.chat.id;
-  const messageId = callbackQuery.message.message_id;
   const data = callbackQuery.data;
 
   // Get Telegram user info
@@ -150,6 +148,12 @@ async function handleCallbackQuery(callbackQuery) {
   const telegramName = telegramUser.username
     ? `@${telegramUser.username}`
     : (telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : ''));
+
+  // Check if this is an inline message (from inline mode) or a regular message
+  const isInlineMessage = !!callbackQuery.inline_message_id;
+  const inlineMessageId = callbackQuery.inline_message_id;
+  const chatId = !isInlineMessage ? callbackQuery.message.chat.id : null;
+  const messageId = !isInlineMessage ? callbackQuery.message.message_id : null;
 
   const [action, billId, personId] = data.split('_');
 
@@ -198,27 +202,51 @@ async function handleCallbackQuery(callbackQuery) {
     const updatedMessage = formatBillMessage(bill);
     const updatedKeyboard = createInlineKeyboard(bill);
 
-    console.log('Updating message for chatId:', chatId, 'messageId:', messageId);
+    if (isInlineMessage) {
+      console.log('Updating inline message:', inlineMessageId);
 
-    const editResponse = await fetch(`${TELEGRAM_API}/editMessageText`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        message_id: messageId,
-        text: updatedMessage,
-        parse_mode: 'Markdown',
-        reply_markup: updatedKeyboard,
-      }),
-    });
+      const editResponse = await fetch(`${TELEGRAM_API}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inline_message_id: inlineMessageId,
+          text: updatedMessage,
+          parse_mode: 'Markdown',
+          reply_markup: updatedKeyboard,
+        }),
+      });
 
-    const editResult = await editResponse.json();
-    console.log('Edit message result:', editResult);
+      const editResult = await editResponse.json();
+      console.log('Edit inline message result:', editResult);
 
-    if (!editResult.ok) {
-      console.error('Failed to edit message:', editResult);
+      if (!editResult.ok) {
+        console.error('Failed to edit inline message:', editResult);
+      } else {
+        console.log(`✅ ${person.name} marked as paid by ${telegramName}`);
+      }
     } else {
-      console.log(`✅ ${person.name} marked as paid by ${telegramName}`);
+      console.log('Updating regular message for chatId:', chatId, 'messageId:', messageId);
+
+      const editResponse = await fetch(`${TELEGRAM_API}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          text: updatedMessage,
+          parse_mode: 'Markdown',
+          reply_markup: updatedKeyboard,
+        }),
+      });
+
+      const editResult = await editResponse.json();
+      console.log('Edit message result:', editResult);
+
+      if (!editResult.ok) {
+        console.error('Failed to edit message:', editResult);
+      } else {
+        console.log(`✅ ${person.name} marked as paid by ${telegramName}`);
+      }
     }
   } catch (error) {
     console.error('Error handling callback:', error);
