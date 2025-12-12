@@ -171,11 +171,31 @@ async function handleCallbackQuery(callbackQuery) {
 // Handle dish selection
 async function handleDishSelection(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage) {
   // Parse: select_billId_dishId
+  // Format: select_bill_TIMESTAMP_dish_TIMESTAMP (or dish_TIMESTAMP_RANDOM)
   const parts = data.split('_');
-  const billId = parts[1];
-  const dishId = parts[2];
 
-  console.log('Dish selection:', { billId, dishId, telegramUserId });
+  // Find indices of 'bill' and 'dish' markers
+  const billIndex = parts.indexOf('bill');
+  const dishIndex = parts.findIndex((part, idx) => idx > billIndex && part === 'dish');
+
+  if (billIndex === -1) {
+    console.error('Invalid callback data - no bill marker:', data);
+    return;
+  }
+
+  let billId, dishId;
+
+  if (dishIndex !== -1) {
+    // Has both 'bill' and 'dish' markers
+    billId = parts.slice(billIndex, dishIndex).join('_');
+    dishId = parts.slice(dishIndex).join('_');
+  } else {
+    // Old format or simple dish ID - take everything after 'select_bill_TIMESTAMP'
+    billId = parts.slice(billIndex, billIndex + 2).join('_'); // bill_TIMESTAMP
+    dishId = parts.slice(billIndex + 2).join('_');
+  }
+
+  console.log('Dish selection:', { billId, dishId, telegramUserId, rawData: data });
 
   try {
     const billRef = db.collection('bills').doc(billId);
