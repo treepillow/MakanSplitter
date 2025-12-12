@@ -128,6 +128,12 @@ async function handleCallbackQuery(callbackQuery) {
   const messageId = callbackQuery.message.message_id;
   const data = callbackQuery.data;
 
+  // Get Telegram user info
+  const telegramUser = callbackQuery.from;
+  const telegramName = telegramUser.username
+    ? `@${telegramUser.username}`
+    : (telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : ''));
+
   const [action, billId, personId] = data.split('_');
 
   if (action !== 'paid') {
@@ -159,8 +165,10 @@ async function handleCallbackQuery(callbackQuery) {
       return;
     }
 
-    // Update person status
+    // Update person status and record who marked it
     bill.people[personIndex].hasPaid = true;
+    bill.people[personIndex].paidBy = telegramName;
+    bill.people[personIndex].paidAt = new Date().toISOString();
     bill.updatedAt = new Date().toISOString();
 
     // Save to Firestore
@@ -185,7 +193,7 @@ async function handleCallbackQuery(callbackQuery) {
       }),
     });
 
-    await answerCallback(callbackQuery.id, `✅ ${person.name} marked as paid!`);
+    await answerCallback(callbackQuery.id, `✅ ${person.name} marked as paid by ${telegramName}!`);
   } catch (error) {
     console.error('Error handling callback:', error);
     await answerCallback(callbackQuery.id, '❌ Error updating status');
@@ -223,7 +231,8 @@ function formatBillMessage(bill) {
   if (paidPeople.length > 0) {
     message += `✅ *PAID (${paidPeople.length})*\n`;
     paidPeople.forEach(person => {
-      message += `   ${person.name} - $${person.amountOwed.toFixed(2)} ✓\n`;
+      const paidByInfo = person.paidBy ? ` (by ${person.paidBy})` : '';
+      message += `   ${person.name} - $${person.amountOwed.toFixed(2)} ✓${paidByInfo}\n`;
     });
     message += `\n`;
   }
@@ -246,7 +255,7 @@ function createInlineKeyboard(bill) {
 
   const keyboard = unpaidPeople.map(person => ([
     {
-      text: `✅ ${person.name} - $${person.amountOwed.toFixed(2)}`,
+      text: `${person.name} - $${person.amountOwed.toFixed(2)} → Paid`,
       callback_data: `paid_${bill.id}_${person.id}`,
     },
   ]));
