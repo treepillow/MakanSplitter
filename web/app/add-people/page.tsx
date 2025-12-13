@@ -81,22 +81,25 @@ export default function AddPeopleScreen() {
       )}
       <div className="h-screen overflow-hidden" style={{ backgroundColor: Colors.background }}>
       <div
-        className="max-w-3xl mx-auto px-6 py-8 h-full transition-opacity duration-600 flex flex-col"
+        className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-8 h-full transition-opacity duration-600 flex flex-col"
         style={{ opacity }}
       >
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold mb-6" style={{ color: Colors.text }}>
+        <div className="text-center mb-6 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6" style={{ color: Colors.text }}>
             Add People
           </h1>
-          <div className="flex justify-center gap-2 mb-4">
+          <div className="flex justify-center gap-2 mb-3 sm:mb-4">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-            <div className="w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
+            <div className="w-6 sm:w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
           </div>
-          <p className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
-            Step 2 of 4
+          <p className="text-sm font-medium mb-4" style={{ color: Colors.textSecondary }}>
+            Step 2 of 4: Who's Eating?
+          </p>
+          <p className="text-sm max-w-md mx-auto" style={{ color: Colors.textMuted }}>
+            Add everyone who shared the meal. They'll select their dishes in Telegram later.
           </p>
         </div>
 
@@ -104,7 +107,7 @@ export default function AddPeopleScreen() {
         <div className="max-w-2xl mx-auto flex-1 flex flex-col min-h-0">
           {/* Input Section */}
           <div
-            className="rounded-2xl p-10 mb-8 border"
+            className="rounded-2xl p-6 sm:p-10 mb-6 sm:mb-8 border"
             style={{
               backgroundColor: Colors.card,
               borderColor: Colors.border,
@@ -116,7 +119,7 @@ export default function AddPeopleScreen() {
               onChangeText={setPersonName}
               placeholder="e.g. Sarah"
               icon="✏️"
-              className="mb-8"
+              className="mb-6 sm:mb-8"
             />
             <div className="flex justify-end">
               <Button
@@ -176,17 +179,17 @@ export default function AddPeopleScreen() {
           )}
 
           {/* Buttons */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Button
               title="Back"
               variant="secondary"
               onPress={() => router.back()}
-              className="flex-1"
+              className="w-full sm:flex-1"
             />
             <Button
               title="Continue →"
               onPress={handleContinue}
-              className="flex-[2]"
+              className="w-full sm:flex-[2]"
               disabled={people.length === 0}
             />
           </div>

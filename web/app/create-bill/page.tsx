@@ -63,29 +63,32 @@ export default function CreateBillScreen() {
       )}
       <div className="h-screen overflow-hidden" style={{ backgroundColor: Colors.background }}>
       <div
-        className="max-w-3xl mx-auto px-6 py-8 h-full transition-opacity duration-600 flex flex-col"
+        className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-8 h-full transition-opacity duration-600 flex flex-col"
         style={{ opacity }}
       >
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold mb-6" style={{ color: Colors.text }}>
+        <div className="text-center mb-6 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6" style={{ color: Colors.text }}>
             Create New Bill
           </h1>
-          <div className="flex justify-center gap-3 mb-4">
-            <div className="w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
+          <div className="flex justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="w-6 sm:w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
           </div>
-          <p className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
-            Step 1 of 4
+          <p className="text-sm font-medium mb-4" style={{ color: Colors.textSecondary }}>
+            Step 1 of 4: Bill Information
+          </p>
+          <p className="text-sm max-w-md mx-auto" style={{ color: Colors.textMuted }}>
+            Enter who paid and the tax percentages. You'll add people and dishes next.
           </p>
         </div>
 
         {/* Content */}
         <div className="max-w-2xl mx-auto flex-1 flex flex-col min-h-0">
         <div
-          className="rounded-2xl p-10 border space-y-8 mb-8"
+          className="rounded-2xl p-6 sm:p-10 border space-y-6 sm:space-y-8 mb-6 sm:mb-8"
           style={{
             backgroundColor: Colors.card,
             borderColor: Colors.border,
@@ -123,17 +126,17 @@ export default function CreateBillScreen() {
         </div>
 
           {/* Buttons */}
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-center">
             <Button
               title="Cancel"
               variant="secondary"
               onPress={() => router.push('/')}
-              className="flex-1 max-w-[200px]"
+              className="w-full sm:flex-1 sm:max-w-[200px]"
             />
             <Button
               title="Continue →"
               onPress={handleContinue}
-              className="flex-[2] max-w-[400px]"
+              className="w-full sm:flex-[2] sm:max-w-[400px]"
             />
           </div>
         </div>
