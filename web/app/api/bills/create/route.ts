@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { validateBill } from '@/utils/validation';
 
 // Simple in-memory rate limiter (use Redis in production for multi-instance)
@@ -55,6 +55,14 @@ export async function POST(request: NextRequest) {
 
     const billData = await request.json();
 
+    // Validate that ID is provided
+    if (!billData.id || typeof billData.id !== 'string') {
+      return NextResponse.json(
+        { error: 'Validation failed', message: 'Bill ID is required' },
+        { status: 400 }
+      );
+    }
+
     // Validate bill data
     const validation = validateBill({
       paidBy: billData.paidBy,
@@ -87,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create bill with server timestamp
+    // Create bill with server timestamp using client-provided ID
     const billToSave = {
       ...billData,
       createdAt: serverTimestamp(),
@@ -96,14 +104,15 @@ export async function POST(request: NextRequest) {
       participants: [],
     };
 
-    // Save to Firestore
-    const billRef = await addDoc(collection(db, 'bills'), billToSave);
+    // Save to Firestore with the client-provided ID
+    const billRef = doc(db, 'bills', billData.id);
+    await setDoc(billRef, billToSave);
 
-    console.log('Bill created successfully:', billRef.id, 'from IP:', ip);
+    console.log('Bill created successfully:', billData.id, 'from IP:', ip);
 
     return NextResponse.json({
       success: true,
-      id: billRef.id
+      id: billData.id
     });
 
   } catch (error: any) {

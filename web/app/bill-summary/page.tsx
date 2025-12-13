@@ -81,7 +81,7 @@ export default function BillSummaryScreen() {
 
   const handleCopyInlineCommand = () => {
     if (!billId) return;
-    const inlineCommand = `@makansplitterbot ${billId}`;
+    const inlineCommand = `@MakanSplitterBot ${billId}`;
     navigator.clipboard.writeText(inlineCommand);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -229,7 +229,7 @@ export default function BillSummaryScreen() {
                   style={{ backgroundColor: Colors.backgroundTertiary }}
                 >
                   <code className="text-sm font-mono flex-1 break-all" style={{ color: Colors.text }}>
-                    @makansplitterbot {billId}
+                    @MakanSplitterBot {billId}
                   </code>
                   <button
                     onClick={handleCopyInlineCommand}
