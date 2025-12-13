@@ -6,25 +6,24 @@ export default function AboutPage() {
     <div className="min-h-screen" style={{ backgroundColor: Colors.background }}>
       <div className="max-w-4xl mx-auto px-6 py-16">
         <div className="text-center mb-16">
-          <span className="text-6xl mb-6 inline-block">👨‍💻</span>
           <h1 className="text-5xl font-bold mb-4" style={{ color: Colors.text }}>
             About MakanSplit
           </h1>
           <p className="text-xl" style={{ color: Colors.textSecondary }}>
-            Built by a broke university student who got tired of mental math
+            Built by a broke university student
           </p>
         </div>
 
         <div className="rounded-2xl p-10 mb-10 border" style={{ backgroundColor: Colors.card, borderColor: Colors.border }}>
           <h2 className="text-3xl font-bold mb-6" style={{ color: Colors.text }}>
-            Hey there! 👋
+            Hey there! 
           </h2>
           <div className="space-y-6 text-lg" style={{ color: Colors.textSecondary }}>
             <p>
-              I'm a university student in Singapore who loves makan sessions with friends but hates the awkward "who owes who" math at the end.
+              I'm a university student in Singapore who loves makan sessions with friends but hates the awkward "who owes who" math at the end and i suck at maths.
             </p>
             <p>
-              So I built MakanSplit to make bill splitting fair, transparent, and instant. Each person pays only for what they ordered - no more rounding up or mental gymnastics.
+              So I built MakanSplit to make bill splitting fair, transparent, and instant. Each person pays only for what they ordered.
             </p>
             <h3 className="text-2xl font-bold mt-8 mb-4" style={{ color: Colors.text }}>
               Why It's Different
@@ -49,7 +48,7 @@ export default function AboutPage() {
             </ul>
             <div className="pt-8">
               <p className="mb-6">
-                Running this while juggling lectures and assignments. If it's helped you avoid awkward money talks, consider buying me lunch! 🧋
+                If it's helped you avoid awkward money talks, consider buying me lunch! hehe
               </p>
               <div className="flex gap-4">
                 <Link

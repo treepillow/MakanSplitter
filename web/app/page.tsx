@@ -1,80 +1,179 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Colors } from '@/constants/colors';
 
 export default function HomePage() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.2,
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: [0.4, 0, 0.2, 1] as const
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: Colors.background }}>
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <div className="mb-12">
-          <span className="text-7xl mb-8 inline-block">🍜</span>
-        </div>
-        <h1
-          className="text-6xl md:text-7xl font-bold mb-6"
-          style={{ color: Colors.text }}
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: Colors.background }}>
+      {/* Floating orbs */}
+      <motion.div
+        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl"
+        style={{ backgroundColor: Colors.primary }}
+        animate={{
+          scale: [1, 1.2, 1],
+          x: [0, 50, 0],
+          y: [0, -30, 0],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-10 blur-3xl"
+        style={{ backgroundColor: Colors.secondary }}
+        animate={{
+          scale: [1, 1.3, 1],
+          x: [0, -40, 0],
+          y: [0, 40, 0],
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      <motion.div
+        className="max-w-4xl mx-auto px-6 py-20 text-center relative z-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Hero Title */}
+        <motion.h1
+          className="text-5xl md:text-7xl font-extrabold mb-6 leading-tight"
+          variants={itemVariants}
         >
-          Split Bills{' '}
-          <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage: `linear-gradient(to right, ${Colors.primary}, ${Colors.accent})`,
-            }}
-          >
+          <span style={{ color: Colors.text }}>Split Bills </span>
+          <br className="md:hidden" />
+          <span style={{ color: Colors.primary }}>
             Effortlessly
           </span>
-        </h1>
-        <p
-          className="text-2xl mb-8 max-w-2xl mx-auto"
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          className="text-xl md:text-2xl mb-12 max-w-2xl mx-auto font-medium"
           style={{ color: Colors.textSecondary }}
+          variants={itemVariants}
         >
-          Are you the suey one paying today? I gotchu.
-        </p>
+          Are you the <span style={{ color: Colors.primary }}>suey one</span> paying today? I gotchu.
+        </motion.p>
 
-        <div
-          className="max-w-xl mx-auto rounded-xl p-6 mb-12 text-left"
-          style={{ backgroundColor: Colors.backgroundTertiary }}
+        {/* Quick Start Box */}
+        <motion.div
+          className="max-w-xl mx-auto rounded-2xl p-8 mb-12 text-left border-2 relative overflow-hidden"
+          style={{
+            backgroundColor: Colors.glassBackground,
+            borderColor: Colors.borderGlow,
+            backdropFilter: 'blur(20px)',
+          }}
+          variants={itemVariants}
+          whileHover={{
+            borderColor: Colors.primary,
+          }}
         >
-          <p className="text-base font-semibold mb-4" style={{ color: Colors.text }}>
-            Quick Start:
+          {/* Cyber grid overlay */}
+          <div className="absolute inset-0 opacity-5 pointer-events-none cyber-grid" />
+
+          <p className="text-lg font-bold mb-6" style={{ color: Colors.primary }}>
+            Quick Start
           </p>
-          <ol className="text-sm space-y-3" style={{ color: Colors.textSecondary }}>
-            <li>1. Create a bill or scan your receipt</li>
-            <li>2. Add people and dishes with prices</li>
-            <li>3. Share the bill in any Telegram chat</li>
-            <li>4. Everyone selects what they ate</li>
-            <li>5. Lock the bill to see who owes what!</li>
+          <ol className="text-base space-y-4" style={{ color: Colors.textSecondary }}>
+            {[
+              '1. Create a bill or scan your receipt',
+              '2. Add people and dishes with prices',
+              '3. Share the bill in any Telegram chat',
+              '4. Everyone selects what they ate',
+              '5. Lock the bill to see who owes what!'
+            ].map((step, i) => (
+              <motion.li
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 + i * 0.1 }}
+                className="flex items-start gap-3"
+              >
+                <span className="font-bold" style={{ color: Colors.primary }}>→</span>
+                <span>{step}</span>
+              </motion.li>
+            ))}
           </ol>
-        </div>
+        </motion.div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link
-            href="/scan-receipt"
-            className="inline-block px-10 py-5 rounded-xl text-xl font-bold transition-all hover:scale-105 hover:shadow-2xl shadow-lg border-2"
-            style={{
-              backgroundColor: Colors.card,
-              borderColor: Colors.primary,
-              color: Colors.primary
-            }}
-          >
-            📸 Scan Receipt
+        {/* CTA Buttons */}
+        <motion.div
+          className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+          variants={itemVariants}
+        >
+          <Link href="/scan-receipt">
+            <motion.div
+              className="px-12 py-6 rounded-2xl text-xl font-bold border-2"
+              style={{
+                backgroundColor: Colors.glassBackground,
+                borderColor: Colors.primary,
+                color: Colors.primary,
+                backdropFilter: 'blur(20px)',
+              }}
+              whileHover={{
+                scale: 1.05,
+                opacity: 0.9,
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Scan Receipt
+            </motion.div>
           </Link>
-          <Link
-            href="/create-bill"
-            className="inline-block px-10 py-5 rounded-xl text-xl font-bold text-white transition-all hover:scale-105 hover:shadow-2xl shadow-lg"
-            style={{ backgroundColor: Colors.primary }}
-          >
-            Create Manually →
-          </Link>
-        </div>
 
-        <div className="mt-20 pt-12 border-t" style={{ borderColor: Colors.border }}>
-          <p className="text-sm" style={{ color: Colors.textMuted }}>
-            Quick. Simple. No sign-up required. Generate your bill split message instantly.
+          <Link href="/create-bill">
+            <motion.div
+              className="px-12 py-6 rounded-2xl text-xl font-bold border-2"
+              style={{
+                backgroundColor: Colors.primary,
+                borderColor: Colors.primary,
+                color: Colors.black,
+              }}
+              whileHover={{
+                scale: 1.05,
+                opacity: 0.9,
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Create Manually →
+            </motion.div>
+          </Link>
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div
+          className="mt-20 pt-12 border-t"
+          style={{ borderColor: Colors.borderLight }}
+          variants={itemVariants}
+        >
+          <p className="text-sm font-medium" style={{ color: Colors.textMuted }}>
+            Quick. Simple. <span style={{ color: Colors.primary }}>No sign-up required.</span> Generate your bill split message instantly.
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

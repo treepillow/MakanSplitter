@@ -24,18 +24,18 @@ export default function BillSummaryScreen() {
   }, []);
 
   useEffect(() => {
-    if (!currentBill || !currentBill.dishes || !currentBill.people) {
+    if (!currentBill || !currentBill.dishes) {
       router.replace('/');
     }
   }, [currentBill, router]);
 
-  if (!currentBill || !currentBill.dishes || !currentBill.people) {
+  if (!currentBill || !currentBill.dishes) {
     return null;
   }
 
   const calculation = calculateBill(
     currentBill.dishes,
-    currentBill.people,
+    currentBill.people || [],
     currentBill.gstPercentage || 0,
     currentBill.serviceChargePercentage || 0
   );
@@ -54,7 +54,7 @@ export default function BillSummaryScreen() {
         gstPercentage: currentBill.gstPercentage || 0,
         serviceChargePercentage: currentBill.serviceChargePercentage || 0,
         dishes: currentBill.dishes!,
-        people: currentBill.people!,
+        people: currentBill.people || [],
         participants: [],
         phase: 'selection' as const,
         subtotal: calculation.subtotal,
@@ -116,11 +116,10 @@ export default function BillSummaryScreen() {
           <div className="flex justify-center gap-2 mb-3 sm:mb-4">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
             <div className="w-6 sm:w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
           </div>
           <p className="text-sm font-medium mb-4" style={{ color: Colors.textSecondary }}>
-            Step 4 of 4: Preview & Share
+            Step 3 of 3: Preview & Share
           </p>
           <p className="text-sm max-w-md mx-auto" style={{ color: Colors.textMuted }}>
             Review the bill breakdown, save it, and share in Telegram for everyone to select their dishes.
@@ -167,35 +166,27 @@ export default function BillSummaryScreen() {
             </div>
           </div>
 
-          {/* Per Person Breakdown */}
+          {/* Dishes List */}
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" style={{ color: Colors.text }}>
-            Who Owes What
+            Dishes on Bill
           </h2>
           <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-            {calculation.perPersonBreakdown.map((person) => (
+            {currentBill.dishes.map((dish) => (
               <div
-                key={person.personId}
+                key={dish.id}
                 className="rounded-xl p-5 border"
                 style={{
                   backgroundColor: Colors.card,
                   borderColor: Colors.border,
                 }}
               >
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-lg font-bold" style={{ color: Colors.text }}>
-                    {person.personName}
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold" style={{ color: Colors.text }}>
+                    {dish.name}
                   </span>
-                  <span className="text-2xl font-extrabold" style={{ color: Colors.primary }}>
-                    {formatCurrency(person.total)}
+                  <span className="text-xl font-bold" style={{ color: Colors.primary }}>
+                    ${dish.price.toFixed(2)}
                   </span>
-                </div>
-                <div className="space-y-1">
-                  {person.dishesEaten.map((dish, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span style={{ color: Colors.textSecondary }}>• {dish.dishName}</span>
-                      <span style={{ color: Colors.textLight }}>{formatCurrency(dish.shareAmount)}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             ))}

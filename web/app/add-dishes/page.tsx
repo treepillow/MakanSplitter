@@ -8,6 +8,7 @@ import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Dish } from '@/types/bill';
 import { Colors } from '@/constants/colors';
+import { validateDishName, validatePrice } from '@/utils/validation';
 
 export default function AddDishesScreen() {
   const router = useRouter();
@@ -23,12 +24,12 @@ export default function AddDishesScreen() {
   }, []);
 
   useEffect(() => {
-    if (!currentBill || !currentBill.people) {
+    if (!currentBill) {
       router.replace('/');
     }
   }, [currentBill, router]);
 
-  if (!currentBill || !currentBill.people) {
+  if (!currentBill) {
     return null;
   }
 
@@ -36,13 +37,17 @@ export default function AddDishesScreen() {
     const trimmedName = dishName.trim();
     const price = parseFloat(dishPrice);
 
-    if (!trimmedName) {
-      setToast({ message: 'Please enter a dish name', type: 'error' });
+    // Validate dish name
+    const nameValidation = validateDishName(trimmedName);
+    if (!nameValidation.valid) {
+      setToast({ message: nameValidation.error!, type: 'error' });
       return;
     }
 
-    if (isNaN(price) || price <= 0) {
-      setToast({ message: 'Please enter a valid price', type: 'error' });
+    // Validate price
+    const priceValidation = validatePrice(price);
+    if (!priceValidation.valid) {
+      setToast({ message: priceValidation.error!, type: 'error' });
       return;
     }
 
@@ -98,12 +103,11 @@ export default function AddDishesScreen() {
           </h1>
           <div className="flex justify-center gap-2 mb-3 sm:mb-4">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
             <div className="w-6 sm:w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
           </div>
           <p className="text-sm font-medium mb-4" style={{ color: Colors.textSecondary }}>
-            Step 3 of 4: What Did You Order?
+            Step 2 of 3: What Did You Order?
           </p>
           <p className="text-sm max-w-md mx-auto" style={{ color: Colors.textMuted }}>
             Add all dishes from the bill with their prices. People will choose what they ate in Telegram.

@@ -1,50 +1,63 @@
 export const Colors = {
-  // Modern dark theme - sleek and professional
-  background: '#0F172A',        // Dark slate blue
-  backgroundSecondary: '#1E293B', // Slightly lighter slate
-  backgroundTertiary: '#334155',  // Card backgrounds
+  // Cyber Dark Theme - Award-winning minimalist aesthetic
+  background: '#0a0a0f',          // Deep space black
+  backgroundSecondary: '#14141e',  // Slightly lighter for layering
+  backgroundTertiary: '#1a1a2e',   // Card backgrounds
 
-  // Card/Surface colors
-  card: '#1E293B',
-  cardHover: '#334155',
-  cardDark: '#0F172A',
+  // Card/Surface colors with transparency for glassmorphism
+  card: 'rgba(20, 20, 30, 0.6)',
+  cardHover: 'rgba(30, 30, 45, 0.7)',
+  cardDark: 'rgba(10, 10, 15, 0.8)',
 
-  // Primary Brand Colors - Vibrant emerald green
-  primary: '#10B981',
-  primaryLight: '#34D399',
-  primaryDark: '#059669',
+  // Glass effects
+  glassBackground: 'rgba(15, 15, 25, 0.7)',
+  glassBorder: 'rgba(255, 255, 255, 0.1)',
 
-  // Accent Colors - Electric blue
-  accent: '#3B82F6',
-  accentLight: '#60A5FA',
-  accentDark: '#2563EB',
+  // Primary Brand Colors - Electric cyan with glow
+  primary: '#00f0ff',              // Neon cyan
+  primaryGlow: 'rgba(0, 240, 255, 0)',
+  primaryDark: '#00b8cc',
 
-  // Success/Warning/Error
-  success: '#10B981',
-  successLight: '#34D399',
-  successDark: '#059669',
-  warning: '#F59E0B',
-  warningLight: '#FBBF24',
-  warningDark: '#D97706',
-  error: '#EF4444',
-  errorLight: '#F87171',
-  errorDark: '#DC2626',
+  // Secondary Brand Colors - Vibrant purple
+  secondary: '#b400ff',            // Neon purple
+  secondaryGlow: 'rgba(180, 0, 255, 0)',
+  secondaryDark: '#8800cc',
 
-  // Text Colors - high contrast for dark bg
-  text: '#F1F5F9',           // Almost white
-  textSecondary: '#CBD5E1',  // Light slate
-  textLight: '#94A3B8',      // Medium slate
-  textMuted: '#64748B',      // Darker slate
+  // Accent Colors - Keep for backwards compatibility
+  accent: '#00f0ff',               // Match primary
+  accentLight: '#33f3ff',
+  accentDark: '#00d9e6',
 
-  // Border Colors
-  border: '#334155',
-  borderLight: '#475569',
-  borderDark: '#1E293B',
+  // Success/Warning/Error - Cyber palette
+  success: '#00ff94',              // Neon green
+  successLight: '#33ffa8',
+  successDark: '#00cc76',
+  warning: '#ffaa00',              // Bright orange
+  warningLight: '#ffbb33',
+  warningDark: '#cc8800',
+  error: '#ff0080',                // Hot pink/magenta
+  errorLight: '#ff3399',
+  errorDark: '#cc0066',
+
+  // Text Colors - high contrast for dark cyber theme
+  text: '#e0e0ff',                 // Slightly purple-tinted white
+  textSecondary: '#b8b8d4',        // Light lavender
+  textLight: '#9090aa',            // Medium lavender
+  textMuted: '#8888aa',            // Muted lavender
+
+  // Border Colors - subtle cyber accents
+  border: '#1a1a2e',
+  borderLight: '#2a2a3e',
+  borderGlow: 'rgba(0, 240, 255, 0.2)',
 
   // Special Colors
   white: '#FFFFFF',
   black: '#000000',
-  overlay: 'rgba(0, 0, 0, 0.75)',
-  shadowDark: 'rgba(0, 0, 0, 0.5)',
-  shadow: 'rgba(0, 0, 0, 0.3)',
+  overlay: 'rgba(0, 0, 0, 0.85)',
+  shadowDark: 'rgba(0, 0, 0, 0.6)',
+  shadow: 'rgba(0, 0, 0, 0.4)',
+
+  // Glow effects for cyber aesthetic
+  glowCyan: '0 0 20px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.3)',
+  glowPurple: '0 0 20px rgba(180, 0, 255, 0.3), 0 0 40px rgba(180, 0, 255, 0.3), inset 0 0 10px rgba(180, 0, 255, 0.3)',
 };

@@ -4,6 +4,7 @@
 const admin = require('firebase-admin');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 if (!TELEGRAM_BOT_TOKEN) {
@@ -27,20 +28,79 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Rate limiting for button clicks
+const actionLimits = new Map(); // userId -> { action -> lastTime }
+
+function rateLimit(userId, action, cooldownMs = 1000) {
+  const now = Date.now();
+  const key = `${userId}_${action}`;
+  const lastTime = actionLimits.get(key);
+
+  if (lastTime && now - lastTime < cooldownMs) {
+    return false; // Rate limited
+  }
+
+  actionLimits.set(key, now);
+
+  // Clean up old entries (older than 1 hour)
+  if (actionLimits.size > 10000) {
+    for (const [k, time] of actionLimits.entries()) {
+      if (now - time > 3600000) {
+        actionLimits.delete(k);
+      }
+    }
+  }
+
+  return true;
+}
+
+// Sanitize text for Telegram Markdown
+function sanitizeForTelegram(text) {
+  // Escape Markdown special characters
+  return text.replace(/([_*\[\]()~`>#+=|{}.!-])/g, '\\$1');
+}
+
+// Verify webhook request is from Telegram
+function verifyTelegramRequest(req) {
+  // Check secret token if configured
+  if (TELEGRAM_WEBHOOK_SECRET) {
+    const headerToken = req.headers['x-telegram-bot-api-secret-token'];
+    if (headerToken !== TELEGRAM_WEBHOOK_SECRET) {
+      console.warn('Invalid secret token');
+      return false;
+    }
+  }
+
+  // Additional verification: check user agent (Telegram uses specific UA)
+  const userAgent = req.headers['user-agent'] || '';
+  if (!userAgent.includes('TelegramBot')) {
+    console.warn('Suspicious user agent:', userAgent);
+    // Don't reject yet, but log for monitoring
+  }
+
+  return true;
+}
+
 // Main webhook handler
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Verify request is from Telegram
+  if (!verifyTelegramRequest(req)) {
+    console.error('Unauthorized webhook request');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   try {
     const update = req.body;
-    console.log('Received update:', JSON.stringify(update, null, 2));
+    console.log('Received update type:', update.inline_query ? 'inline_query' : update.callback_query ? 'callback_query' : 'unknown');
 
     // Check if Firebase is initialized
     if (!admin.apps.length) {
       console.error('Firebase not initialized');
-      return res.status(500).json({ error: 'Firebase not initialized' });
+      return res.status(500).json({ error: 'Service unavailable' });
     }
 
     // Handle inline queries (when user types @bot in chat)
@@ -56,7 +116,8 @@ module.exports = async (req, res) => {
     res.status(200).json({ ok: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
-    res.status(500).json({ error: error.message, stack: error.stack });
+    // Don't expose stack traces to client
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -135,9 +196,6 @@ async function handleInlineQuery(inlineQuery) {
 
 // Handle callback queries (button clicks)
 async function handleCallbackQuery(callbackQuery) {
-  // Answer callback immediately to prevent loading state
-  await answerCallback(callbackQuery.id, '⏳ Updating...');
-
   const data = callbackQuery.data;
   const telegramUser = callbackQuery.from;
   const telegramUserId = telegramUser.id;
@@ -149,126 +207,142 @@ async function handleCallbackQuery(callbackQuery) {
   const isInlineMessage = !!callbackQuery.inline_message_id;
   const inlineMessageId = callbackQuery.inline_message_id;
 
-  console.log('Callback data:', data);
-  console.log('Telegram user:', telegramUsername, telegramUserId);
-
   // Parse callback data
   const parts = data.split('_');
   const action = parts[0];
 
+  console.log('Callback from user:', telegramUserId, 'action:', action);
+
+  // Rate limit: 1 action per second per user
+  if (!rateLimit(telegramUserId, action, 1000)) {
+    await answerCallback(callbackQuery.id, '⏱️ Please wait before clicking again');
+    return;
+  }
+
+  // Answer callback immediately to prevent loading state
+  await answerCallback(callbackQuery.id, '⏳ Updating...');
+
   if (action === 'select') {
     // Format: select_billId_dishId
-    await handleDishSelection(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage);
+    await handleDishSelection(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage, callbackQuery.id);
   } else if (action === 'lock') {
     // Format: lock_billId
-    await handleLockBill(data, telegramUserId, inlineMessageId, isInlineMessage);
+    await handleLockBill(data, telegramUserId, inlineMessageId, isInlineMessage, callbackQuery.id);
   } else if (action === 'paid') {
     // Format: paid_billId_participantTelegramId
-    await handleMarkPaid(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage);
+    await handleMarkPaid(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage, callbackQuery.id);
   }
 }
 
 // Handle dish selection
-async function handleDishSelection(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage) {
-  console.log('=== DISH SELECTION DEBUG ===');
-  console.log('Raw callback data:', data);
-
-  // Parse: select_billId_dishId
-  // Expected format: select_bill_TIMESTAMP_dish_TIMESTAMP_RANDOM
+async function handleDishSelection(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage, callbackQueryId) {
+  // Parse callback data
   const parts = data.split('_');
-  console.log('Split parts:', parts);
 
   // Find indices of 'bill' and 'dish' markers
   const billIndex = parts.indexOf('bill');
   const dishIndex = parts.findIndex((part, idx) => idx > billIndex && part === 'dish');
 
-  console.log('billIndex:', billIndex, 'dishIndex:', dishIndex);
-
-  if (billIndex === -1) {
-    console.error('Invalid callback data - no bill marker:', data);
+  if (billIndex === -1 || dishIndex === -1) {
+    console.error('Invalid callback data:', data);
     return;
   }
 
-  let billId, dishId;
+  // Extract billId and dishId
+  const billId = parts.slice(billIndex, dishIndex).join('_');
+  const dishId = parts.slice(dishIndex).join('_');
 
-  if (dishIndex !== -1 && dishIndex > billIndex + 1) {
-    // Has both 'bill' and 'dish' markers
-    // bill_TIMESTAMP goes from billIndex to dishIndex
-    billId = parts.slice(billIndex, dishIndex).join('_');
-    // dish_TIMESTAMP_RANDOM goes from dishIndex to end
-    dishId = parts.slice(dishIndex).join('_');
-  } else {
-    console.error('Could not find dish marker after bill marker:', data);
-    return;
-  }
-
-  console.log('Parsed billId:', billId);
-  console.log('Parsed dishId:', dishId);
-  console.log('=== END DEBUG ===');
+  console.log('Dish selection:', { billId, dishId, userId: telegramUserId });
 
   try {
     const billRef = db.collection('bills').doc(billId);
-    const billDoc = await billRef.get();
 
-    if (!billDoc.exists) {
-      console.error('Bill not found:', billId);
-      return;
-    }
+    // Use transaction to prevent race conditions
+    await db.runTransaction(async (transaction) => {
+      const billDoc = await transaction.get(billRef);
 
-    const bill = billDoc.data();
+      if (!billDoc.exists) {
+        throw new Error('Bill not found');
+      }
 
-    if (bill.phase !== 'selection') {
-      console.log('Bill is locked, cannot select dishes');
-      await answerCallback(callbackQuery.id, '❌ Bill is locked!');
-      return;
-    }
+      const bill = billDoc.data();
 
-    // Initialize participants array if doesn't exist
-    if (!bill.participants) {
-      bill.participants = [];
-    }
+      // Check if bill is locked
+      if (bill.phase !== 'selection') {
+        throw new Error('Bill is locked');
+      }
 
-    // Find or create participant
-    let participant = bill.participants.find(p => p.telegramUserId === telegramUserId);
+      // Initialize participants if needed
+      if (!bill.participants) {
+        bill.participants = [];
+      }
 
-    if (!participant) {
-      participant = {
-        telegramUserId,
-        telegramUsername,
-        selectedDishIds: [],
-        hasPaid: false,
-      };
-      bill.participants.push(participant);
-    }
+      // Find or create participant
+      let participantIndex = bill.participants.findIndex(p => p.telegramUserId === telegramUserId);
+      let participant;
 
-    // Toggle dish selection
-    const dishIndex = participant.selectedDishIds.indexOf(dishId);
-    if (dishIndex === -1) {
-      // Add dish
-      participant.selectedDishIds.push(dishId);
-      console.log(`${telegramUsername} selected dish ${dishId}`);
-    } else {
-      // Remove dish
-      participant.selectedDishIds.splice(dishIndex, 1);
-      console.log(`${telegramUsername} unselected dish ${dishId}`);
-    }
+      if (participantIndex === -1) {
+        // Create new participant
+        participant = {
+          telegramUserId,
+          telegramUsername,
+          selectedDishIds: [],
+          hasPaid: false,
+        };
+        bill.participants.push(participant);
+        participantIndex = bill.participants.length - 1;
+      } else {
+        participant = bill.participants[participantIndex];
+      }
 
-    // Update bill
-    bill.updatedAt = new Date().toISOString();
-    await billRef.update({
-      participants: bill.participants,
-      updatedAt: bill.updatedAt,
+      // Toggle dish selection
+      const dishIdIndex = participant.selectedDishIds.indexOf(dishId);
+
+      if (dishIdIndex === -1) {
+        // Add dish
+        participant.selectedDishIds.push(dishId);
+        console.log(`${telegramUsername} selected ${dishId}`);
+      } else {
+        // Remove dish
+        participant.selectedDishIds.splice(dishIdIndex, 1);
+        console.log(`${telegramUsername} unselected ${dishId}`);
+      }
+
+      // Update participant in array
+      bill.participants[participantIndex] = participant;
+
+      // Set creator on first interaction if not set
+      if (!bill.creatorTelegramId && bill.participants.length > 0) {
+        bill.creatorTelegramId = telegramUserId;
+      }
+
+      // Update bill with transaction
+      transaction.update(billRef, {
+        participants: bill.participants,
+        creatorTelegramId: bill.creatorTelegramId || null,
+        updatedAt: new Date().toISOString(),
+      });
+
+      return bill; // Return for message update
     });
 
+    // Fetch updated bill for message
+    const updatedBillDoc = await billRef.get();
+    const updatedBill = updatedBillDoc.data();
+
     // Update message
-    await updateInlineMessage(bill, inlineMessageId, isInlineMessage, telegramUserId);
+    await updateInlineMessage(updatedBill, inlineMessageId, isInlineMessage, telegramUserId);
+
   } catch (error) {
     console.error('Error handling dish selection:', error);
+    if (error.message === 'Bill is locked') {
+      // Callback already answered, no need to answer again
+    }
   }
 }
 
 // Handle lock & calculate
-async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMessage) {
+async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMessage, callbackQueryId) {
   // Parse: lock_billId
   // Format: lock_bill_TIMESTAMP
   const parts = data.split('_');
@@ -285,52 +359,74 @@ async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMes
 
   try {
     const billRef = db.collection('bills').doc(billId);
-    const billDoc = await billRef.get();
 
-    if (!billDoc.exists) {
-      console.error('Bill not found:', billId);
-      return;
-    }
+    // Use transaction to prevent race conditions
+    await db.runTransaction(async (transaction) => {
+      const billDoc = await transaction.get(billRef);
 
-    const bill = billDoc.data();
+      if (!billDoc.exists) {
+        throw new Error('Bill not found');
+      }
 
-    // Check if user is creator
-    if (bill.creatorTelegramId && bill.creatorTelegramId !== telegramUserId) {
-      console.log('Only creator can lock bill');
-      return;
-    }
+      const bill = billDoc.data();
 
-    if (bill.phase !== 'selection') {
-      console.log('Bill is already locked');
-      return;
-    }
+      // Check if user is creator
+      if (bill.creatorTelegramId && bill.creatorTelegramId !== telegramUserId) {
+        throw new Error('Only the bill creator can lock and calculate');
+      }
 
-    // Calculate amounts for each participant
-    calculateAmounts(bill);
+      if (bill.phase !== 'selection') {
+        throw new Error('Bill is already locked');
+      }
 
-    // Update bill to payment phase
-    bill.phase = 'payment';
-    bill.lockedAt = new Date().toISOString();
-    bill.updatedAt = new Date().toISOString();
+      // Validate at least one participant selected dishes
+      if (!bill.participants || bill.participants.length === 0) {
+        throw new Error('No participants have selected dishes yet');
+      }
 
-    await billRef.update({
-      phase: bill.phase,
-      lockedAt: bill.lockedAt,
-      updatedAt: bill.updatedAt,
-      participants: bill.participants,
+      const hasSelections = bill.participants.some(p => p.selectedDishIds && p.selectedDishIds.length > 0);
+      if (!hasSelections) {
+        throw new Error('At least one person must select a dish before locking');
+      }
+
+      // Calculate amounts for each participant
+      calculateAmounts(bill);
+
+      // Update bill to payment phase
+      transaction.update(billRef, {
+        phase: 'payment',
+        lockedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        participants: bill.participants,
+      });
+
+      return bill;
     });
 
     console.log('Bill locked and amounts calculated');
 
+    // Fetch updated bill for message
+    const updatedBillDoc = await billRef.get();
+    const updatedBill = updatedBillDoc.data();
+
     // Update message
-    await updateInlineMessage(bill, inlineMessageId, isInlineMessage, telegramUserId);
+    await updateInlineMessage(updatedBill, inlineMessageId, isInlineMessage, telegramUserId);
+
   } catch (error) {
     console.error('Error locking bill:', error);
+    // Provide user feedback for common errors
+    if (error.message.includes('creator')) {
+      await answerCallback(callbackQueryId, '🔒 Only the bill creator can lock');
+    } else if (error.message.includes('already locked')) {
+      await answerCallback(callbackQueryId, '✅ Bill is already locked');
+    } else if (error.message.includes('select')) {
+      await answerCallback(callbackQueryId, '⚠️ At least one person must select dishes first');
+    }
   }
 }
 
 // Handle mark as paid
-async function handleMarkPaid(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage) {
+async function handleMarkPaid(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage, callbackQueryId) {
   // Parse: paid_billId_participantTelegramId
   // Format: paid_bill_TIMESTAMP_TELEGRAMID
   const parts = data.split('_');
@@ -349,51 +445,77 @@ async function handleMarkPaid(data, telegramUserId, telegramUsername, inlineMess
 
   try {
     const billRef = db.collection('bills').doc(billId);
-    const billDoc = await billRef.get();
 
-    if (!billDoc.exists) {
-      console.error('Bill not found:', billId);
-      return;
-    }
+    // Use transaction to prevent race conditions
+    await db.runTransaction(async (transaction) => {
+      const billDoc = await transaction.get(billRef);
 
-    const bill = billDoc.data();
+      if (!billDoc.exists) {
+        throw new Error('Bill not found');
+      }
 
-    if (bill.phase !== 'payment') {
-      console.log('Bill must be locked before marking as paid');
-      return;
-    }
+      const bill = billDoc.data();
 
-    // Find participant
-    const participant = bill.participants.find(p => p.telegramUserId === participantTelegramId);
+      if (bill.phase !== 'payment') {
+        throw new Error('Bill must be locked before marking as paid');
+      }
 
-    if (!participant) {
-      console.error('Participant not found:', participantTelegramId);
-      return;
-    }
+      // Authorization: Only the creator or the participant themselves can mark as paid
+      const isCreator = bill.creatorTelegramId === telegramUserId;
+      const isSelf = participantTelegramId === telegramUserId;
 
-    if (participant.hasPaid) {
-      console.log('Already marked as paid');
-      return;
-    }
+      if (!isCreator && !isSelf) {
+        throw new Error('Only the bill creator or the participant can mark as paid');
+      }
 
-    // Mark as paid
-    participant.hasPaid = true;
-    participant.paidAt = new Date().toISOString();
-    participant.paidBy = telegramUsername;
+      // Find participant
+      const participantIndex = bill.participants.findIndex(p => p.telegramUserId === participantTelegramId);
 
-    bill.updatedAt = new Date().toISOString();
+      if (participantIndex === -1) {
+        throw new Error('Participant not found');
+      }
 
-    await billRef.update({
-      participants: bill.participants,
-      updatedAt: bill.updatedAt,
+      const participant = bill.participants[participantIndex];
+
+      if (participant.hasPaid) {
+        throw new Error('Already marked as paid');
+      }
+
+      // Mark as paid
+      participant.hasPaid = true;
+      participant.paidAt = new Date().toISOString();
+      participant.paidBy = telegramUsername;
+
+      bill.participants[participantIndex] = participant;
+
+      // Update with transaction
+      transaction.update(billRef, {
+        participants: bill.participants,
+        updatedAt: new Date().toISOString(),
+      });
+
+      return bill;
     });
 
-    console.log(`${telegramUsername} marked ${participant.telegramUsername} as paid`);
+    console.log(`${telegramUsername} marked participant ${participantTelegramId} as paid`);
+
+    // Fetch updated bill for message
+    const updatedBillDoc = await billRef.get();
+    const updatedBill = updatedBillDoc.data();
 
     // Update message
-    await updateInlineMessage(bill, inlineMessageId, isInlineMessage, telegramUserId);
+    await updateInlineMessage(updatedBill, inlineMessageId, isInlineMessage, telegramUserId);
+
   } catch (error) {
     console.error('Error marking as paid:', error);
+    // Provide user feedback
+    if (error.message.includes('creator') || error.message.includes('participant')) {
+      await answerCallback(callbackQueryId, '🔒 Only the bill creator or participant can mark as paid');
+    } else if (error.message.includes('Already marked')) {
+      await answerCallback(callbackQueryId, '✅ Already marked as paid');
+    } else if (error.message.includes('must be locked')) {
+      await answerCallback(callbackQueryId, '⚠️ Bill must be locked first');
+    }
   }
 }
 
@@ -492,7 +614,7 @@ function formatBillMessage(bill) {
 
 // Format message for selection phase
 function formatSelectionPhaseMessage(bill, date) {
-  let message = `🧾 *${bill.restaurantName || 'Bill Split'}*\n`;
+  let message = `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n`;
   message += `📅 ${date}\n`;
   message += `💰 Total: $${bill.total.toFixed(2)}\n\n`;
   message += `━━━━━━━━━━━━━━━━━━\n\n`;
@@ -500,7 +622,7 @@ function formatSelectionPhaseMessage(bill, date) {
 
   // Show all dishes
   bill.dishes.forEach((dish, index) => {
-    message += `${index + 1}. ${dish.name} - $${dish.price.toFixed(2)}\n`;
+    message += `${index + 1}. ${sanitizeForTelegram(dish.name)} - $${dish.price.toFixed(2)}\n`;
   });
 
   message += `\n━━━━━━━━━━━━━━━━━━\n\n`;
@@ -512,14 +634,14 @@ function formatSelectionPhaseMessage(bill, date) {
       const dishNames = p.selectedDishIds
         .map(dishId => {
           const dish = bill.dishes.find(d => d.id === dishId);
-          return dish ? dish.name : '?';
+          return dish ? sanitizeForTelegram(dish.name) : '?';
         })
         .join(', ');
 
       if (p.selectedDishIds.length > 0) {
-        message += `✓ ${p.telegramUsername}: ${dishNames}\n`;
+        message += `✓ ${sanitizeForTelegram(p.telegramUsername)}: ${dishNames}\n`;
       } else {
-        message += `⏳ ${p.telegramUsername}: (not selected yet)\n`;
+        message += `⏳ ${sanitizeForTelegram(p.telegramUsername)}: (not selected yet)\n`;
       }
     });
   } else {
@@ -534,7 +656,7 @@ function formatSelectionPhaseMessage(bill, date) {
 
 // Format message for payment phase
 function formatPaymentPhaseMessage(bill, date) {
-  let message = `🧾 *${bill.restaurantName || 'Bill Split'}*\n`;
+  let message = `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n`;
   message += `📅 ${date}\n`;
   message += `💰 Total: $${bill.total.toFixed(2)}\n`;
   message += `🔒 *Split Calculated!*\n\n`;
@@ -552,8 +674,8 @@ function formatPaymentPhaseMessage(bill, date) {
   if (paidParticipants.length > 0) {
     message += `*✅ PAID (${paidParticipants.length})*\n`;
     paidParticipants.forEach(p => {
-      const paidByInfo = p.paidBy ? ` (by ${p.paidBy})` : '';
-      message += `   ${p.telegramUsername} - $${p.amountOwed.toFixed(2)} ✓${paidByInfo}\n`;
+      const paidByInfo = p.paidBy ? ` (by ${sanitizeForTelegram(p.paidBy)})` : '';
+      message += `   ${sanitizeForTelegram(p.telegramUsername)} - $${p.amountOwed.toFixed(2)} ✓${paidByInfo}\n`;
     });
     message += `\n`;
   }
@@ -562,7 +684,7 @@ function formatPaymentPhaseMessage(bill, date) {
   if (unpaidParticipants.length > 0) {
     message += `*⏳ PENDING (${unpaidParticipants.length})*\n`;
     unpaidParticipants.forEach(p => {
-      message += `   ${p.telegramUsername} - $${p.amountOwed.toFixed(2)}\n`;
+      message += `   ${sanitizeForTelegram(p.telegramUsername)} - $${p.amountOwed.toFixed(2)}\n`;
     });
   }
 
