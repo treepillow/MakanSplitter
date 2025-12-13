@@ -1,21 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { BillProvider } from "@/context/BillContext";
+import { Navbar } from "@/components/Navbar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
   title: "MakanSplit - Split bills with friends",
-  description: "Easily split bills with friends via Telegram",
+  description: "Easily split bills with friends. Modern bill splitting made simple.",
 };
 
 export default function RootLayout({
@@ -24,11 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className="w-full">
+      <body className={`${inter.variable} font-sans antialiased w-full`} style={{ backgroundColor: '#0F172A' }}>
         <BillProvider>
+          <Navbar />
           {children}
         </BillProvider>
       </body>

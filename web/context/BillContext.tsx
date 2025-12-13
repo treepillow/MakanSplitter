@@ -1,64 +1,29 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { Bill } from '../types/bill';
-import {
-  getAllBillsFromFirebase,
-  saveBillToFirebase,
-  updateBillInFirebase,
-  deleteBillFromFirebase
-} from '../lib/billStorage';
 
 interface BillContextType {
-  bills: Bill[];
   currentBill: Partial<Bill> | null;
   setCurrentBill: (bill: Partial<Bill> | null) => void;
-  saveBillToHistory: (bill: Bill) => Promise<void>;
-  updateBillInHistory: (bill: Bill) => Promise<void>;
-  deleteBillFromHistory: (id: string) => Promise<void>;
-  refreshBills: () => Promise<void>;
+  clearCurrentBill: () => void;
 }
 
 const BillContext = createContext<BillContextType | undefined>(undefined);
 
 export function BillProvider({ children }: { children: React.ReactNode }) {
-  const [bills, setBills] = useState<Bill[]>([]);
   const [currentBill, setCurrentBill] = useState<Partial<Bill> | null>(null);
 
-  useEffect(() => {
-    refreshBills();
-  }, []);
-
-  const refreshBills = async () => {
-    const loadedBills = await getAllBillsFromFirebase();
-    setBills(loadedBills);
-  };
-
-  const saveBillToHistory = async (bill: Bill) => {
-    await saveBillToFirebase(bill);
-    await refreshBills();
-  };
-
-  const updateBillInHistory = async (bill: Bill) => {
-    await updateBillInFirebase(bill);
-    await refreshBills();
-  };
-
-  const deleteBillFromHistory = async (id: string) => {
-    await deleteBillFromFirebase(id);
-    await refreshBills();
+  const clearCurrentBill = () => {
+    setCurrentBill(null);
   };
 
   return (
     <BillContext.Provider
       value={{
-        bills,
         currentBill,
         setCurrentBill,
-        saveBillToHistory,
-        updateBillInHistory,
-        deleteBillFromHistory,
-        refreshBills,
+        clearCurrentBill,
       }}
     >
       {children}

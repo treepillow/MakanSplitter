@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
+import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Dish } from '@/types/bill';
 import { Colors } from '@/constants/colors';
@@ -18,6 +19,7 @@ export default function AddDishesScreen() {
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
   const [opacity, setOpacity] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   useEffect(() => {
     setTimeout(() => setOpacity(1), 100);
@@ -40,12 +42,12 @@ export default function AddDishesScreen() {
     const price = parseFloat(dishPrice);
 
     if (!trimmedName) {
-      alert('Please enter a dish name');
+      setToast({ message: 'Please enter a dish name', type: 'error' });
       return;
     }
 
     if (isNaN(price) || price <= 0) {
-      alert('Please enter a valid price');
+      setToast({ message: 'Please enter a valid price', type: 'error' });
       return;
     }
 
@@ -59,6 +61,7 @@ export default function AddDishesScreen() {
     setDishes([...dishes, newDish]);
     setDishName('');
     setDishPrice('');
+    setToast({ message: `${trimmedName} added successfully!`, type: 'success' });
 
     // Automatically open assignment modal
     setSelectedDish(newDish);
@@ -82,7 +85,7 @@ export default function AddDishesScreen() {
 
   const handleSaveAssignment = () => {
     if (selectedPeople.length === 0) {
-      alert('Please select at least one person for this dish');
+      setToast({ message: 'Please select at least one person for this dish', type: 'error' });
       return;
     }
 
@@ -92,6 +95,7 @@ export default function AddDishesScreen() {
           d.id === selectedDish.id ? { ...d, sharedBy: selectedPeople } : d
         )
       );
+      setToast({ message: 'Assignment saved successfully!', type: 'success' });
     }
 
     setAssignModalVisible(false);
@@ -105,13 +109,13 @@ export default function AddDishesScreen() {
 
   const handleContinue = () => {
     if (dishes.length === 0) {
-      alert('Please add at least one dish');
+      setToast({ message: 'Please add at least one dish', type: 'error' });
       return;
     }
 
     const unassignedDishes = dishes.filter((d) => d.sharedBy.length === 0);
     if (unassignedDishes.length > 0) {
-      alert(`Please assign people to: ${unassignedDishes.map((d) => d.name).join(', ')}`);
+      setToast({ message: `Please assign people to: ${unassignedDishes.map((d) => d.name).join(', ')}`, type: 'warning' });
       return;
     }
 
@@ -124,46 +128,46 @@ export default function AddDishesScreen() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: Colors.background }}
-    >
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      <div className="h-screen overflow-hidden" style={{ backgroundColor: Colors.background }}>
       <div
-        className="transition-opacity duration-600"
+        className="max-w-3xl mx-auto px-6 py-8 h-full transition-opacity duration-600 flex flex-col"
         style={{ opacity }}
       >
         {/* Header */}
-        <div
-          className="p-5 border-b"
-          style={{
-            backgroundColor: Colors.backgroundSecondary,
-            borderColor: Colors.border,
-          }}
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-[32px]">🍽️</span>
-            <div className="flex-1">
-              <h1 className="text-[28px] font-bold mb-2" style={{ color: Colors.text }}>
-                Add Dishes
-              </h1>
-              <div className="flex gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-                <div className="w-6 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-              </div>
-            </div>
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold mb-6" style={{ color: Colors.text }}>
+            Add Dishes
+          </h1>
+          <div className="flex justify-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+            <div className="w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
           </div>
-          <p className="text-sm font-semibold" style={{ color: Colors.textSecondary }}>
+          <p className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
             Step 3 of 4
           </p>
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-5 pb-24">
+        <div className="max-w-2xl mx-auto flex-1 flex flex-col min-h-0">
           {/* Input Section */}
-          <div className="mb-6">
-            <div className="flex gap-3 mb-3">
+          <div
+            className="rounded-2xl p-10 mb-8 border"
+            style={{
+              backgroundColor: Colors.card,
+              borderColor: Colors.border,
+            }}
+          >
+            <div className="flex gap-4 mb-8">
               <Input
                 label="Dish Name"
                 value={dishName}
@@ -180,26 +184,30 @@ export default function AddDishesScreen() {
                 className="flex-1 mb-0"
               />
             </div>
-            <Button
-              title="Add Dish"
-              onPress={handleAddDish}
-            />
+            <div className="flex justify-end">
+              <Button
+                title="+ Add Dish"
+                onPress={handleAddDish}
+              />
+            </div>
           </div>
 
           {/* List */}
-          <h2 className="text-lg font-semibold mb-3" style={{ color: Colors.text }}>
-            Dishes ({dishes.length})
+          <h2 className="text-xl font-bold mb-6 flex items-center gap-2" style={{ color: Colors.text }}>
+            Dishes
+            <span className="text-base px-2 py-1 rounded-lg" style={{ backgroundColor: Colors.primary, color: Colors.white }}>
+              {dishes.length}
+            </span>
           </h2>
 
           {dishes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-10">
-              <span className="text-5xl mb-3">🍽️</span>
-              <p className="text-base text-center leading-6" style={{ color: Colors.textSecondary }}>
-                No dishes added yet.{'\n'}Add all items from the bill.
+            <div className="flex flex-col items-center justify-center py-8">
+              <p className="text-base text-center" style={{ color: Colors.textSecondary }}>
+                No dishes added yet
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4 mb-8 flex-1 overflow-y-auto min-h-0">
               {dishes.map((item) => {
                 const assignedPeople = people.filter((p) => item.sharedBy.includes(p.id));
                 const isAssigned = item.sharedBy.length > 0;
@@ -207,15 +215,15 @@ export default function AddDishesScreen() {
                 return (
                   <div
                     key={item.id}
-                    className="rounded-xl p-4 border"
+                    className="rounded-xl p-6 border"
                     style={{
                       backgroundColor: Colors.card,
                       borderColor: Colors.border,
                     }}
                   >
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                        <p className="text-base font-semibold mb-1" style={{ color: Colors.text }}>
+                        <p className="text-base font-semibold mb-2" style={{ color: Colors.text }}>
                           {item.name}
                         </p>
                         <p className="text-lg font-bold" style={{ color: Colors.accent }}>
@@ -239,14 +247,8 @@ export default function AddDishesScreen() {
                           borderColor: Colors.success,
                         }}
                       >
-                        <p className="text-xs mb-1" style={{ color: Colors.success }}>
-                          Shared by:
-                        </p>
-                        <p className="text-sm font-medium mb-1" style={{ color: Colors.text }}>
-                          {assignedPeople.map((p) => p.name).join(', ')}
-                        </p>
-                        <p className="text-xs text-right" style={{ color: Colors.accent }}>
-                          Edit
+                        <p className="text-sm" style={{ color: Colors.success }}>
+                          Shared: {assignedPeople.map((p) => p.name).join(', ')}
                         </p>
                       </button>
                     ) : (
@@ -268,61 +270,54 @@ export default function AddDishesScreen() {
               })}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div
-          className="fixed bottom-0 left-0 right-0 flex gap-3 p-4 border-t"
-          style={{
-            backgroundColor: Colors.backgroundSecondary,
-            borderColor: Colors.border,
-          }}
-        >
-          <Button
-            title="Back"
-            variant="secondary"
-            onPress={() => router.back()}
-            className="flex-1"
-          />
-          <Button
-            title="Continue"
-            onPress={handleContinue}
-            className="flex-[2]"
-            disabled={dishes.length === 0}
-          />
+          {/* Buttons */}
+          <div className="flex gap-4">
+            <Button
+              title="Back"
+              variant="secondary"
+              onPress={() => router.back()}
+              className="flex-1"
+            />
+            <Button
+              title="Continue →"
+              onPress={handleContinue}
+              className="flex-[2]"
+              disabled={dishes.length === 0}
+            />
+          </div>
         </div>
       </div>
 
       {/* Assignment Modal */}
       {assignModalVisible && (
         <div
-          className="fixed inset-0 flex items-end justify-center z-50"
-          style={{ backgroundColor: Colors.overlay }}
+          className="fixed inset-0 flex items-center justify-center z-50 p-6"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
           onClick={() => setAssignModalVisible(false)}
         >
           <div
-            className="w-full max-h-[80%] rounded-t-3xl p-5 border overflow-y-auto"
+            className="w-full max-w-md max-h-[80vh] rounded-2xl p-8 border overflow-y-auto"
             style={{
               backgroundColor: Colors.card,
               borderColor: Colors.border,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold mb-1" style={{ color: Colors.text }}>
+            <h3 className="text-xl font-bold mb-3" style={{ color: Colors.text }}>
               Who shared this dish?
             </h3>
-            <p className="text-base mb-5" style={{ color: Colors.textSecondary }}>
+            <p className="text-base mb-8" style={{ color: Colors.textSecondary }}>
               {selectedDish?.name} (${selectedDish?.price.toFixed(2)})
             </p>
 
-            <div className="space-y-2 mb-5">
+            <div className="space-y-4 mb-8">
               {people.map((person) => {
                 const isSelected = selectedPeople.includes(person.id);
                 return (
                   <button
                     key={person.id}
                     onClick={() => handleTogglePerson(person.id)}
-                    className="w-full flex justify-between items-center p-4 rounded-xl border"
+                    className="w-full flex justify-between items-center p-5 rounded-xl border"
                     style={{
                       backgroundColor: isSelected ? Colors.primary : Colors.backgroundTertiary,
                       borderColor: isSelected ? Colors.primary : Colors.border,
@@ -365,5 +360,6 @@ export default function AddDishesScreen() {
         </div>
       )}
     </div>
+    </>
   );
 }

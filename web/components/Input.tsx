@@ -27,29 +27,26 @@ export function Input({
   const InputElement = multiline ? 'textarea' : 'input';
 
   return (
-    <div className={`mb-5 ${className}`}>
+    <div className={`mb-4 ${className}`}>
       <label
-        className="block text-[15px] font-semibold tracking-wide mb-2.5"
+        className="block text-sm font-medium mb-2"
         style={{ color: Colors.textSecondary }}
       >
         {label}
       </label>
       <div
-        className={`flex items-center rounded-2xl border-2 transition-all ${
-          error ? '' : ''
-        }`}
+        className="flex items-center rounded-lg border transition-all"
         style={{
-          backgroundColor: Colors.card,
+          backgroundColor: Colors.backgroundTertiary,
           borderColor: error ? Colors.error : Colors.border,
-          boxShadow: `0 4px 8px ${Colors.primary}1A`,
         }}
       >
         {icon && (
-          <span className="text-xl ml-4.5">{icon}</span>
+          <span className="text-lg ml-4">{icon}</span>
         )}
         <InputElement
-          className={`flex-1 px-4.5 py-4 text-base font-medium bg-transparent border-0 outline-none ${
-            multiline ? 'min-h-[100px] align-top pt-4' : ''
+          className={`flex-1 px-4 py-3 text-base bg-transparent border-0 outline-none ${
+            multiline ? 'min-h-[100px] align-top pt-3' : ''
           } ${icon ? 'pl-2' : ''}`}
           style={{
             color: Colors.text,
@@ -62,7 +59,7 @@ export function Input({
       </div>
       {error && (
         <p
-          className="text-[13px] font-semibold mt-1.5 ml-1"
+          className="text-xs font-medium mt-1.5 ml-1"
           style={{ color: Colors.error }}
         >
           {error}

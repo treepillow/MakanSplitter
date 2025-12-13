@@ -1,4 +1,3 @@
-import React from 'react';
 import { Colors } from '../constants/colors';
 
 interface ButtonProps {
@@ -21,7 +20,7 @@ export function Button({
   icon,
 }: ButtonProps) {
   const getBackgroundColor = () => {
-    if (disabled) return Colors.cardHover;
+    if (disabled) return Colors.backgroundTertiary;
     if (variant === 'text') return 'transparent';
     switch (variant) {
       case 'success':
@@ -29,7 +28,7 @@ export function Button({
       case 'danger':
         return Colors.error;
       case 'secondary':
-        return Colors.card;
+        return Colors.backgroundTertiary;
       default:
         return Colors.primary;
     }
@@ -43,7 +42,7 @@ export function Button({
 
   const getBorderStyle = () => {
     if (variant === 'secondary') {
-      return `2px solid ${Colors.border}`;
+      return `1px solid ${Colors.border}`;
     }
     return 'none';
   };
@@ -52,17 +51,16 @@ export function Button({
     <button
       onClick={onPress}
       disabled={disabled || loading}
-      className={`rounded-2xl px-7 py-4.5 min-h-[60px] font-bold text-[17px] tracking-wide transition-opacity hover:opacity-90 disabled:opacity-40 ${className}`}
+      className={`rounded-xl px-8 py-4 font-semibold text-base transition-all hover:opacity-90 hover:scale-105 disabled:opacity-40 shadow-md ${className}`}
       style={{
         backgroundColor: getBackgroundColor(),
         color: getTextColor(),
         border: getBorderStyle(),
-        boxShadow: variant !== 'secondary' && !disabled ? `0 8px 12px ${Colors.primary}4D` : 'none',
       }}
     >
       {loading ? (
         <div className="flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-3 border-current border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className="flex items-center justify-center gap-2">

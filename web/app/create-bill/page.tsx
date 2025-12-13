@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
+import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Colors } from '@/constants/colors';
 
@@ -14,6 +15,7 @@ export default function CreateBillScreen() {
   const [serviceChargePercentage, setServiceChargePercentage] = useState('10');
   const [paidBy, setPaidBy] = useState('');
   const [opacity, setOpacity] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   useEffect(() => {
     setTimeout(() => setOpacity(1), 100);
@@ -21,7 +23,7 @@ export default function CreateBillScreen() {
 
   const handleContinue = () => {
     if (!paidBy.trim()) {
-      alert('Please enter who paid the bill');
+      setToast({ message: 'Please enter who paid the bill', type: 'error' });
       return;
     }
 
@@ -29,12 +31,12 @@ export default function CreateBillScreen() {
     const serviceCharge = parseFloat(serviceChargePercentage) || 0;
 
     if (gst < 0 || gst > 100) {
-      alert('GST percentage must be between 0 and 100');
+      setToast({ message: 'GST percentage must be between 0 and 100', type: 'error' });
       return;
     }
 
     if (serviceCharge < 0 || serviceCharge > 100) {
-      alert('Service charge percentage must be between 0 and 100');
+      setToast({ message: 'Service charge percentage must be between 0 and 100', type: 'error' });
       return;
     }
 
@@ -51,117 +53,92 @@ export default function CreateBillScreen() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: Colors.background }}
-    >
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      <div className="h-screen overflow-hidden" style={{ backgroundColor: Colors.background }}>
       <div
-        className="transition-opacity duration-600"
+        className="max-w-3xl mx-auto px-6 py-8 h-full transition-opacity duration-600 flex flex-col"
         style={{ opacity }}
       >
         {/* Header */}
-        <div className="px-6 pt-5 pb-8 text-center">
-          <div className="text-5xl mb-3">💸</div>
-          <h1 className="text-[32px] font-extrabold tracking-tight mb-4" style={{ color: Colors.text }}>
-            New Bill
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold mb-6" style={{ color: Colors.text }}>
+            Create New Bill
           </h1>
-          <div className="flex justify-center gap-2 mb-3">
-            <div
-              className="w-6 h-2 rounded-full"
-              style={{ backgroundColor: Colors.primary }}
-            />
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: Colors.border }}
-            />
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: Colors.border }}
-            />
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: Colors.border }}
-            />
+          <div className="flex justify-center gap-3 mb-4">
+            <div className="w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
           </div>
-          <p className="text-sm font-semibold" style={{ color: Colors.textLight }}>
+          <p className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
             Step 1 of 4
           </p>
         </div>
 
         {/* Content */}
-        <div className="flex-1 px-5">
-          <div
-            className="rounded-3xl p-6 border"
-            style={{
-              backgroundColor: Colors.card,
-              borderColor: Colors.border,
-              boxShadow: `0 8px 16px ${Colors.primary}26`,
-            }}
-          >
-            <Input
-              label="Who Paid the Bill?"
-              value={paidBy}
-              onChangeText={setPaidBy}
-              placeholder="e.g. John, Me"
-              icon="👤"
-            />
-
-            <Input
-              label="GST (%)"
-              value={gstPercentage}
-              onChangeText={setGstPercentage}
-              placeholder="9"
-              type="number"
-              icon="📋"
-            />
-
-            <Input
-              label="Service Charge (%)"
-              value={serviceChargePercentage}
-              onChangeText={setServiceChargePercentage}
-              placeholder="10"
-              type="number"
-              icon="🔔"
-            />
-
-            <div
-              className="flex items-start rounded-2xl p-4 mt-2 border"
-              style={{
-                backgroundColor: Colors.cardHover,
-                borderColor: Colors.borderLight,
-              }}
-            >
-              <span className="text-xl mr-3">💡</span>
-              <p className="flex-1 text-sm leading-5 font-medium" style={{ color: Colors.textSecondary }}>
-                In Singapore, GST is typically 9% and service charge is 10%.
-                Leave as 0 if not applicable.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
+        <div className="max-w-2xl mx-auto flex-1 flex flex-col min-h-0">
         <div
-          className="flex gap-3 p-5 border-t"
+          className="rounded-2xl p-10 border space-y-8 mb-8"
           style={{
-            backgroundColor: Colors.background,
+            backgroundColor: Colors.card,
             borderColor: Colors.border,
           }}
         >
-          <Button
-            title="Cancel"
-            variant="secondary"
-            onPress={() => router.push('/')}
-            className="flex-1"
+          <Input
+            label="Who Paid the Bill?"
+            value={paidBy}
+            onChangeText={setPaidBy}
+            placeholder="e.g. John, Me"
+            icon="👤"
           />
-          <Button
-            title="Continue"
-            onPress={handleContinue}
-            className="flex-[2]"
-            icon="→"
+
+          <Input
+            label="GST (%)"
+            value={gstPercentage}
+            onChangeText={setGstPercentage}
+            placeholder="9"
+            type="number"
+            icon="📋"
           />
+
+          <Input
+            label="Service Charge (%)"
+            value={serviceChargePercentage}
+            onChangeText={setServiceChargePercentage}
+            placeholder="10"
+            type="number"
+            icon="🔔"
+          />
+
+          <p className="text-sm text-center pt-4" style={{ color: Colors.textSecondary }}>
+            💡 In Singapore, GST is typically 9% and service charge is 10%
+          </p>
+        </div>
+
+          {/* Buttons */}
+          <div className="flex gap-4 justify-center">
+            <Button
+              title="Cancel"
+              variant="secondary"
+              onPress={() => router.push('/')}
+              className="flex-1 max-w-[200px]"
+            />
+            <Button
+              title="Continue →"
+              onPress={handleContinue}
+              className="flex-[2] max-w-[400px]"
+            />
+          </div>
         </div>
       </div>
     </div>
+    </>
   );
 }

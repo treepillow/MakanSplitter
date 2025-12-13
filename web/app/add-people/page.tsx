@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
+import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Colors } from '@/constants/colors';
 
@@ -13,6 +14,7 @@ export default function AddPeopleScreen() {
   const [personName, setPersonName] = useState('');
   const [people, setPeople] = useState<string[]>([]);
   const [opacity, setOpacity] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   useEffect(() => {
     setTimeout(() => setOpacity(1), 100);
@@ -31,17 +33,18 @@ export default function AddPeopleScreen() {
   const handleAddPerson = () => {
     const trimmedName = personName.trim();
     if (!trimmedName) {
-      alert('Please enter a person\'s name');
+      setToast({ message: 'Please enter a person\'s name', type: 'error' });
       return;
     }
 
     if (people.includes(trimmedName)) {
-      alert('This person has already been added');
+      setToast({ message: 'This person has already been added', type: 'warning' });
       return;
     }
 
     setPeople([...people, trimmedName]);
     setPersonName('');
+    setToast({ message: `${trimmedName} added successfully!`, type: 'success' });
   };
 
   const handleRemovePerson = (name: string) => {
@@ -50,7 +53,7 @@ export default function AddPeopleScreen() {
 
   const handleContinue = () => {
     if (people.length === 0) {
-      alert('Please add at least one person');
+      setToast({ message: 'Please add at least one person', type: 'error' });
       return;
     }
 
@@ -68,48 +71,40 @@ export default function AddPeopleScreen() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: Colors.background }}
-    >
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      <div className="h-screen overflow-hidden" style={{ backgroundColor: Colors.background }}>
       <div
-        className="transition-opacity duration-600"
+        className="max-w-3xl mx-auto px-6 py-8 h-full transition-opacity duration-600 flex flex-col"
         style={{ opacity }}
       >
         {/* Header */}
-        <div className="px-6 pt-5 pb-8 text-center">
-          <div className="text-5xl mb-3">👥</div>
-          <h1 className="text-[32px] font-extrabold tracking-tight mb-4" style={{ color: Colors.text }}>
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold mb-6" style={{ color: Colors.text }}>
             Add People
           </h1>
-          <div className="flex justify-center gap-2 mb-3">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: Colors.border }}
-            />
-            <div
-              className="w-6 h-2 rounded-full"
-              style={{ backgroundColor: Colors.primary }}
-            />
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: Colors.border }}
-            />
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: Colors.border }}
-            />
+          <div className="flex justify-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+            <div className="w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
           </div>
-          <p className="text-sm font-semibold" style={{ color: Colors.textLight }}>
+          <p className="text-sm font-medium" style={{ color: Colors.textSecondary }}>
             Step 2 of 4
           </p>
         </div>
 
         {/* Content */}
-        <div className="flex-1 px-5 pb-20">
+        <div className="max-w-2xl mx-auto flex-1 flex flex-col min-h-0">
           {/* Input Section */}
           <div
-            className="rounded-3xl p-5 mb-6 border"
+            className="rounded-2xl p-10 mb-8 border"
             style={{
               backgroundColor: Colors.card,
               borderColor: Colors.border,
@@ -121,69 +116,57 @@ export default function AddPeopleScreen() {
               onChangeText={setPersonName}
               placeholder="e.g. Sarah"
               icon="✏️"
-              className="mb-4"
+              className="mb-8"
             />
-            <Button
-              title="Add Person"
-              onPress={handleAddPerson}
-              icon="+"
-            />
+            <div className="flex justify-end">
+              <Button
+                title="+ Add Person"
+                onPress={handleAddPerson}
+              />
+            </div>
           </div>
 
-          {/* List */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* List Header */}
+          <div className="flex items-center gap-3 mb-6">
             <h2 className="text-xl font-bold" style={{ color: Colors.text }}>
               People Added
             </h2>
             <div
-              className="rounded-xl px-3 py-1 min-w-[32px] text-center"
+              className="rounded-lg px-3 py-1 min-w-[40px] text-center"
               style={{ backgroundColor: Colors.primary }}
             >
-              <span className="text-sm font-extrabold" style={{ color: Colors.white }}>
+              <span className="text-base font-bold" style={{ color: Colors.white }}>
                 {people.length}
               </span>
             </div>
           </div>
 
           {people.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-10">
-              <div
-                className="w-[100px] h-[100px] rounded-full flex items-center justify-center mb-5 border-2"
-                style={{
-                  backgroundColor: Colors.card,
-                  borderColor: Colors.border,
-                }}
-              >
-                <span className="text-5xl">👥</span>
-              </div>
-              <p className="text-base text-center leading-6" style={{ color: Colors.textLight }}>
-                No people added yet{'\n'}Add everyone who shared the meal
+            <div className="flex flex-col items-center justify-center py-8 px-6">
+              <p className="text-base text-center" style={{ color: Colors.textSecondary }}>
+                No people added yet
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4 mb-8 flex-1 overflow-y-auto min-h-0">
               {people.map((item) => (
                 <div
                   key={item}
-                  className="flex justify-between items-center rounded-2xl p-4 border"
+                  className="flex justify-between items-center rounded-xl p-6 border"
                   style={{
                     backgroundColor: Colors.card,
                     borderColor: Colors.border,
-                    boxShadow: `0 4px 8px ${Colors.primary}1A`,
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">👤</span>
-                    <span className="text-[17px] font-semibold" style={{ color: Colors.text }}>
-                      {item}
-                    </span>
-                  </div>
+                  <span className="text-lg font-semibold" style={{ color: Colors.text }}>
+                    {item}
+                  </span>
                   <button
                     onClick={() => handleRemovePerson(item)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
                     style={{ backgroundColor: Colors.error }}
                   >
-                    <span className="text-lg font-bold leading-5" style={{ color: Colors.white }}>
+                    <span className="text-lg font-bold" style={{ color: Colors.white }}>
                       ✕
                     </span>
                   </button>
@@ -191,31 +174,25 @@ export default function AddPeopleScreen() {
               ))}
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <div
-          className="fixed bottom-0 left-0 right-0 flex gap-3 p-5 border-t"
-          style={{
-            backgroundColor: Colors.background,
-            borderColor: Colors.border,
-          }}
-        >
-          <Button
-            title="Back"
-            variant="secondary"
-            onPress={() => router.back()}
-            className="flex-1"
-          />
-          <Button
-            title="Continue"
-            onPress={handleContinue}
-            className="flex-[2]"
-            disabled={people.length === 0}
-            icon="→"
-          />
+          {/* Buttons */}
+          <div className="flex gap-4">
+            <Button
+              title="Back"
+              variant="secondary"
+              onPress={() => router.back()}
+              className="flex-1"
+            />
+            <Button
+              title="Continue →"
+              onPress={handleContinue}
+              className="flex-[2]"
+              disabled={people.length === 0}
+            />
+          </div>
         </div>
       </div>
     </div>
+    </>
   );
 }

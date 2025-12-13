@@ -1,0 +1,36 @@
+<svg width="360" height="100" viewBox="0 0 360 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- People illustration -->
+  <g transform="translate(10, 20)">
+    <!-- Left person -->
+    <circle cx="20" cy="15" r="8" stroke="#10b981" stroke-width="2" fill="none"/>
+    <path d="M 20 25 L 20 45 M 20 30 L 10 40 M 20 30 L 30 40" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Center person with receipt -->
+    <circle cx="50" cy="10" r="10" stroke="#10b981" stroke-width="2.5" fill="none"/>
+    <rect x="45" y="22" width="10" height="14" rx="1" stroke="#10b981" stroke-width="2" fill="none"/>
+    <line x1="47" y1="25" x2="53" y2="25" stroke="#10b981" stroke-width="1"/>
+    <line x1="47" y1="28" x2="53" y2="28" stroke="#10b981" stroke-width="1"/>
+    <line x1="47" y1="31" x2="53" y2="31" stroke="#10b981" stroke-width="1"/>
+    <path d="M 50 38 L 50 55 M 50 43 L 38 53 M 50 43 L 62 53" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Right person -->
+    <circle cx="80" cy="15" r="8" stroke="#10b981" stroke-width="2" fill="none"/>
+    <path d="M 80 25 L 80 45 M 80 30 L 70 40 M 80 30 L 90 40" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Money symbols -->
+    <g transform="translate(5, 0)">
+      <path d="M 15 8 L 18 5 L 15 2" stroke="#10b981" stroke-width="1.5" fill="none"/>
+      <rect x="10" y="3" width="8" height="5" rx="1" stroke="#10b981" stroke-width="1.5" fill="none"/>
+      <line x1="12" y1="5.5" x2="16" y2="5.5" stroke="#10b981" stroke-width="1"/>
+    </g>
+
+    <g transform="translate(65, 0)">
+      <path d="M 15 8 L 12 5 L 15 2" stroke="#10b981" stroke-width="1.5" fill="none"/>
+      <rect x="12" y="3" width="8" height="5" rx="1" stroke="#10b981" stroke-width="1.5" fill="none"/>
+      <line x1="14" y1="5.5" x2="18" y2="5.5" stroke="#10b981" stroke-width="1"/>
+    </g>
+  </g>
+
+  <!-- Text -->
+  <text x="120" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#ededed">MakanSplit</text>
+</svg>
