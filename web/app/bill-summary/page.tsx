@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { nanoid } from 'nanoid';
 import { Button } from '@/components/Button';
 import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
@@ -43,8 +44,8 @@ export default function BillSummaryScreen() {
   const handleSaveBill = async () => {
     setSaving(true);
     try {
-      // Generate bill ID
-      const newBillId = `bill_${Date.now()}`;
+      // Generate bill ID (cryptographically secure random ID)
+      const newBillId = `bill_${nanoid()}`;
 
       // Create full bill object
       const fullBill: Bill = {

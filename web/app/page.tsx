@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Colors } from '@/constants/colors';
+import BillCounter from '@/components/BillCounter';
 
 export default function HomePage() {
   const containerVariants = {
@@ -72,12 +73,17 @@ export default function HomePage() {
 
         {/* Subtitle */}
         <motion.p
-          className="text-xl md:text-2xl mb-12 max-w-2xl mx-auto font-medium"
+          className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto font-medium"
           style={{ color: Colors.textSecondary }}
           variants={itemVariants}
         >
           Are you the <span style={{ color: Colors.primary }}>suey one</span> paying today? I gotchu.
         </motion.p>
+
+        {/* Bill Counter */}
+        <motion.div variants={itemVariants} className="mb-12">
+          <BillCounter />
+        </motion.div>
 
         {/* Quick Start Box */}
         <motion.div

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, increment, updateDoc } from 'firebase/firestore';
 import { validateBill } from '@/utils/validation';
 
 // Simple in-memory rate limiter (use Redis in production for multi-instance)
@@ -107,6 +107,23 @@ export async function POST(request: NextRequest) {
     // Save to Firestore with the client-provided ID
     const billRef = doc(db, 'bills', billData.id);
     await setDoc(billRef, billToSave);
+
+    // Increment total bills counter (fire and forget - don't wait)
+    updateDoc(doc(db, 'stats', 'counters'), {
+      totalBills: increment(1),
+      lastUpdated: serverTimestamp()
+    }).catch(async (error) => {
+      // If counter doesn't exist, create it
+      if (error.code === 'not-found') {
+        await setDoc(doc(db, 'stats', 'counters'), {
+          totalBills: 1,
+          lastUpdated: serverTimestamp()
+        }).catch(() => {
+          // Silently fail - counter is not critical
+          console.warn('Failed to create counter document');
+        });
+      }
+    });
 
     console.log('Bill created successfully:', billData.id, 'from IP:', ip);
 
