@@ -63,7 +63,7 @@ function verifyTelegramRequest(req) {
     const headerToken = req.headers['x-telegram-bot-api-secret-token'];
     if (headerToken !== TELEGRAM_WEBHOOK_SECRET) return false;
   }
-  return false;
+  return true;
 }
 
 // --- MAIN HANDLER ---
