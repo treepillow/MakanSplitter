@@ -229,6 +229,7 @@ export default function ScanReceiptPage() {
     }
 
     setCurrentBill({
+      restaurantName: 'Restaurant',
       dishes: scannedDishes,
       people: [],
       gstPercentage: gst,
@@ -237,7 +238,7 @@ export default function ScanReceiptPage() {
       date: new Date(),
     });
 
-    router.push('/add-people');
+    router.push('/bill-summary');
   };
 
   return (
@@ -552,7 +553,7 @@ export default function ScanReceiptPage() {
                     />
                   ) : scannedDishes.length > 0 ? (
                     <Button
-                      title="Continue to Add People →"
+                      title="Continue to Summary →"
                       onPress={handleContinue}
                       className="w-full sm:flex-[2]"
                       disabled={!paidBy.trim()}

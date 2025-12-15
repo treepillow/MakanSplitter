@@ -54,15 +54,16 @@ function rateLimit(userId, action, cooldownMs = 1000) {
   return true;
 }
 
-// Sanitize text for Telegram Markdown
+// Sanitize text for Telegram MarkdownV2
 function sanitizeForTelegram(text) {
-  // Escape Markdown special characters
+  if (typeof text !== 'string') return String(text); // Handle numbers automatically
+  // Escape MarkdownV2 special characters
   return text.replace(/([_*\[\]()~`>#+=|{}.!-])/g, '\\$1');
 }
 
 // Verify webhook request is from Telegram
 function verifyTelegramRequest(req) {
-  // Check secret token if configured
+  // Check secret token if configured (Primary Security)
   if (TELEGRAM_WEBHOOK_SECRET) {
     const headerToken = req.headers['x-telegram-bot-api-secret-token'];
     if (headerToken !== TELEGRAM_WEBHOOK_SECRET) {
@@ -71,12 +72,8 @@ function verifyTelegramRequest(req) {
     }
   }
 
-  // Additional verification: check user agent (Telegram uses specific UA)
-  const userAgent = req.headers['user-agent'] || '';
-  if (!userAgent.includes('TelegramBot')) {
-    console.warn('Suspicious user agent:', userAgent);
-    // Don't reject yet, but log for monitoring
-  }
+  // Removed "Suspicious user agent" check to prevent false positives.
+  // The Secret Token above is the strong security measure.
 
   return true;
 }
@@ -162,6 +159,13 @@ async function handleInlineQuery(inlineQuery) {
     }
 
     const bill = billDoc.data();
+    console.log('Bill data:', JSON.stringify({
+      id: bill.id,
+      restaurantName: bill.restaurantName,
+      total: bill.total,
+      dishCount: bill.dishes?.length,
+      hasSubtotal: !!bill.subtotal
+    }));
 
     // Format bill message based on phase
     const message = formatBillMessage(bill);
@@ -181,7 +185,7 @@ async function handleInlineQuery(inlineQuery) {
             description: `Total: $${bill.total.toFixed(2)} - ${bill.dishes.length} dishes`,
             input_message_content: {
               message_text: message,
-              parse_mode: 'Markdown',
+              parse_mode: 'MarkdownV2', // Fixed: MarkdownV2
             },
             reply_markup: keyboard,
           },
@@ -344,7 +348,6 @@ async function handleDishSelection(data, telegramUserId, telegramUsername, inlin
 // Handle lock & calculate
 async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMessage, callbackQueryId) {
   // Parse: lock_billId
-  // Format: lock_bill_TIMESTAMP
   const parts = data.split('_');
   const billIndex = parts.indexOf('bill');
 
@@ -353,7 +356,7 @@ async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMes
     return;
   }
 
-  const billId = parts.slice(billIndex).join('_'); // bill_TIMESTAMP
+  const billId = parts.slice(billIndex).join('_');
 
   console.log('Lock bill:', { billId, telegramUserId, rawData: data });
 
@@ -428,7 +431,6 @@ async function handleLockBill(data, telegramUserId, inlineMessageId, isInlineMes
 // Handle mark as paid
 async function handleMarkPaid(data, telegramUserId, telegramUsername, inlineMessageId, isInlineMessage, callbackQueryId) {
   // Parse: paid_billId_participantTelegramId
-  // Format: paid_bill_TIMESTAMP_TELEGRAMID
   const parts = data.split('_');
   const billIndex = parts.indexOf('bill');
 
@@ -438,8 +440,8 @@ async function handleMarkPaid(data, telegramUserId, telegramUsername, inlineMess
   }
 
   // billId is bill_TIMESTAMP, participantId is the number after that
-  const billId = parts.slice(billIndex, billIndex + 2).join('_'); // bill_TIMESTAMP
-  const participantTelegramId = parseInt(parts[billIndex + 2]); // The telegram ID number
+  const billId = parts.slice(billIndex, billIndex + 2).join('_');
+  const participantTelegramId = parseInt(parts[billIndex + 2]);
 
   console.log('Mark paid:', { billId, participantTelegramId, markedBy: telegramUserId, rawData: data });
 
@@ -525,7 +527,6 @@ function calculateAmounts(bill) {
     return;
   }
 
-  const totalBeforeCharges = bill.subtotal;
   const gstRate = bill.gstPercentage / 100;
   const serviceChargeRate = bill.serviceChargePercentage / 100;
 
@@ -567,7 +568,7 @@ async function updateInlineMessage(bill, inlineMessageId, isInlineMessage, curre
   const requestBody = {
     inline_message_id: inlineMessageId,
     text: updatedMessage,
-    parse_mode: 'Markdown',
+    parse_mode: 'MarkdownV2', // Fixed: MarkdownV2
     reply_markup: updatedKeyboard,
   };
 
@@ -615,14 +616,15 @@ function formatBillMessage(bill) {
 // Format message for selection phase
 function formatSelectionPhaseMessage(bill, date) {
   let message = `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n`;
-  message += `📅 ${date}\n`;
-  message += `💰 Total: $${bill.total.toFixed(2)}\n\n`;
+  message += `📅 ${sanitizeForTelegram(date)}\n`;
+  message += `💰 Total: $${sanitizeForTelegram(bill.total.toFixed(2))}\n\n`; // Escaped price dot
   message += `━━━━━━━━━━━━━━━━━━\n\n`;
   message += `*SELECT YOUR DISHES:*\n\n`;
 
   // Show all dishes
   bill.dishes.forEach((dish, index) => {
-    message += `${index + 1}. ${sanitizeForTelegram(dish.name)} - $${dish.price.toFixed(2)}\n`;
+    // Escaped "1." to "1\." and hyphen to " \- " and price dot
+    message += `${index + 1}\\. ${sanitizeForTelegram(dish.name)} \\- $${sanitizeForTelegram(dish.price.toFixed(2))}\n`;
   });
 
   message += `\n━━━━━━━━━━━━━━━━━━\n\n`;
@@ -649,7 +651,7 @@ function formatSelectionPhaseMessage(bill, date) {
   }
 
   message += `\n━━━━━━━━━━━━━━━━━━\n`;
-  message += `_Tap dishes below to select what you ate!_`;
+  message += `_Tap dishes below to select what you ate\\!_`; // Escaped !
 
   return message;
 }
@@ -657,9 +659,9 @@ function formatSelectionPhaseMessage(bill, date) {
 // Format message for payment phase
 function formatPaymentPhaseMessage(bill, date) {
   let message = `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n`;
-  message += `📅 ${date}\n`;
-  message += `💰 Total: $${bill.total.toFixed(2)}\n`;
-  message += `🔒 *Split Calculated!*\n\n`;
+  message += `📅 ${sanitizeForTelegram(date)}\n`;
+  message += `💰 Total: $${sanitizeForTelegram(bill.total.toFixed(2))}\n`; // Escaped price dot
+  message += `🔒 *Split Calculated\\!*\n\n`; // Escaped !
   message += `━━━━━━━━━━━━━━━━━━\n\n`;
 
   if (!bill.participants || bill.participants.length === 0) {
@@ -675,7 +677,7 @@ function formatPaymentPhaseMessage(bill, date) {
     message += `*✅ PAID (${paidParticipants.length})*\n`;
     paidParticipants.forEach(p => {
       const paidByInfo = p.paidBy ? ` (by ${sanitizeForTelegram(p.paidBy)})` : '';
-      message += `   ${sanitizeForTelegram(p.telegramUsername)} - $${p.amountOwed.toFixed(2)} ✓${paidByInfo}\n`;
+      message += `   ${sanitizeForTelegram(p.telegramUsername)} \\- $${sanitizeForTelegram(p.amountOwed.toFixed(2))} ✓${paidByInfo}\n`;
     });
     message += `\n`;
   }
@@ -684,12 +686,12 @@ function formatPaymentPhaseMessage(bill, date) {
   if (unpaidParticipants.length > 0) {
     message += `*⏳ PENDING (${unpaidParticipants.length})*\n`;
     unpaidParticipants.forEach(p => {
-      message += `   ${sanitizeForTelegram(p.telegramUsername)} - $${p.amountOwed.toFixed(2)}\n`;
+      message += `   ${sanitizeForTelegram(p.telegramUsername)} \\- $${sanitizeForTelegram(p.amountOwed.toFixed(2))}\n`;
     });
   }
 
   message += `\n━━━━━━━━━━━━━━━━━━\n`;
-  message += `_Tap "Mark Paid" when you've paid!_`;
+  message += `_Tap "Mark Paid" when you've paid\\!_`; // Escaped !
 
   return message;
 }
