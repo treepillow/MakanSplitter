@@ -46,13 +46,13 @@ function rateLimit(userId, action, cooldownMs = 1000) {
   return true;
 }
 
-// 2. Safe Sanitizer for MarkdownV2 (From ChatGPT's cleaner version)
+// 2. Safe Sanitizer for MarkdownV2
 function sanitizeForTelegram(text) {
   if (text === null || text === undefined) return '';
   return String(text).replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
 }
 
-// 3. Money Formatter (Handles the . in prices automatically)
+// 3. Money Formatter
 function tgMoney(num) {
   return sanitizeForTelegram(Number(num).toFixed(2));
 }
@@ -75,12 +75,10 @@ module.exports = async (req, res) => {
   try {
     const update = req.body;
 
-    // Handle inline queries
     if (update.inline_query) {
       await handleInlineQuery(update.inline_query);
     }
 
-    // Handle buttons
     if (update.callback_query) {
       await handleCallbackQuery(update.callback_query);
     }
@@ -127,8 +125,6 @@ async function handleInlineQuery(inlineQuery) {
         reply_markup: keyboard,
       },
     ]);
-    
-    console.log('✅ Article sent for', bill.id);
 
   } catch (error) {
     console.error('🔥 Error handling inline query:', error);
@@ -155,10 +151,14 @@ async function handleCallbackQuery(callbackQuery) {
   const isInline = !!callbackQuery.inline_message_id;
   const inlineMsgId = callbackQuery.inline_message_id;
   
-  const parts = data.split('_');
+  // ⚡ COMPRESSED PARSING: Split by ':'
+  // Format: "action:billId:payload"
+  const parts = data.split(':');
   const action = parts[0];
+  const billId = parts[1];
+  const payload = parts[2]; // dishIndex or targetUserId
 
-  console.log('Action:', action, 'User:', userId);
+  console.log(`Action: ${action}, Bill: ${billId}, Payload: ${payload}`);
 
   if (!rateLimit(userId, action, 1000)) {
     await answerCallback(callbackQuery.id, '⏱️ Slow down!');
@@ -167,25 +167,19 @@ async function handleCallbackQuery(callbackQuery) {
 
   await answerCallback(callbackQuery.id, '⏳ Updating...');
 
-  if (action === 'select') {
-    await handleDishSelection(data, userId, username, inlineMsgId, isInline);
-  } else if (action === 'lock') {
-    await handleLockBill(data, userId, inlineMsgId, isInline, callbackQuery.id);
-  } else if (action === 'paid') {
-    await handleMarkPaid(data, userId, username, inlineMsgId, isInline, callbackQuery.id);
+  if (action === 's') { // 's' = select
+    await handleDishSelection(billId, payload, userId, username, inlineMsgId, isInline);
+  } else if (action === 'l') { // 'l' = lock
+    await handleLockBill(billId, userId, inlineMsgId, isInline, callbackQuery.id);
+  } else if (action === 'p') { // 'p' = paid
+    await handleMarkPaid(billId, payload, userId, username, inlineMsgId, isInline, callbackQuery.id);
   }
 }
 
-// --- DATABASE LOGIC (Restored from your original code) ---
+// --- DATABASE LOGIC ---
 
-async function handleDishSelection(data, userId, username, inlineMsgId, isInline) {
-  const parts = data.split('_');
-  const billIndex = parts.indexOf('bill');
-  const dishIndex = parts.findIndex((part, idx) => idx > billIndex && part === 'dish');
-  
-  if (billIndex === -1 || dishIndex === -1) return;
-  const billId = parts.slice(billIndex, dishIndex).join('_');
-  const dishId = parts.slice(dishIndex).join('_');
+async function handleDishSelection(billId, dishIndexStr, userId, username, inlineMsgId, isInline) {
+  const dishIndex = parseInt(dishIndexStr);
 
   try {
     const billRef = db.collection('bills').doc(billId);
@@ -195,6 +189,11 @@ async function handleDishSelection(data, userId, username, inlineMsgId, isInline
       const bill = doc.data();
       
       if (bill.phase !== 'selection') throw new Error('Locked');
+      
+      // Get Dish ID from Index (Safe & Short)
+      if (!bill.dishes || !bill.dishes[dishIndex]) throw new Error('Invalid dish');
+      const dishId = bill.dishes[dishIndex].id;
+
       if (!bill.participants) bill.participants = [];
 
       let pIndex = bill.participants.findIndex(p => p.telegramUserId === userId);
@@ -218,12 +217,7 @@ async function handleDishSelection(data, userId, username, inlineMsgId, isInline
   } catch (e) { console.error('Select error:', e); }
 }
 
-async function handleLockBill(data, userId, inlineMsgId, isInline, cbId) {
-  const parts = data.split('_');
-  const billIndex = parts.indexOf('bill');
-  if (billIndex === -1) return;
-  const billId = parts.slice(billIndex).join('_');
-
+async function handleLockBill(billId, userId, inlineMsgId, isInline, cbId) {
   try {
     const billRef = db.collection('bills').doc(billId);
     await db.runTransaction(async (t) => {
@@ -244,18 +238,13 @@ async function handleLockBill(data, userId, inlineMsgId, isInline, cbId) {
     await updateInlineMessage(updated, inlineMsgId, isInline, userId);
   } catch (e) { 
     console.error('Lock error:', e);
-    // Notify user of specific errors via alert
     if (e.message === 'Creator only') await answerCallback(cbId, '🔒 Only creator can lock', true);
     if (e.message === 'No selections') await answerCallback(cbId, '⚠️ Select dishes first', true);
   }
 }
 
-async function handleMarkPaid(data, userId, username, inlineMsgId, isInline, cbId) {
-  const parts = data.split('_');
-  const billIndex = parts.indexOf('bill');
-  if (billIndex === -1) return;
-  const billId = parts.slice(billIndex, billIndex + 2).join('_');
-  const targetId = parseInt(parts[billIndex + 2]);
+async function handleMarkPaid(billId, targetIdStr, userId, username, inlineMsgId, isInline, cbId) {
+  const targetId = parseInt(targetIdStr);
 
   try {
     const billRef = db.collection('bills').doc(billId);
@@ -328,7 +317,7 @@ async function answerCallback(id, text, alert = false) {
   });
 }
 
-// --- FORMATTERS (Using clean ChatGPT logic) ---
+// --- FORMATTERS ---
 
 function formatBillMessage(bill) {
   const date = sanitizeForTelegram(new Date(bill.date).toLocaleDateString('en-SG', {
@@ -351,13 +340,13 @@ function formatSelection(bill, date) {
   msg += `\n━━━━━━━━━━━━━━━━━━\n\n`;
 
   if (!bill.participants?.length) {
-    msg += `_No one has selected dishes yet\\._\n`; // Escaped dot
+    msg += `_No one has selected dishes yet\\._\n`;
   } else {
     msg += `*👥 Selections:*\n`;
     bill.participants.forEach(p => {
       const name = sanitizeForTelegram(p.telegramUsername);
       if (!p.selectedDishIds.length) {
-        msg += `⏳ ${name}: \\(not selected yet\\)\n`; // Escaped parens
+        msg += `⏳ ${name}: \\(not selected yet\\)\n`;
       } else {
         const dishes = p.selectedDishIds
           .map(id => bill.dishes.find(d => d.id === id)?.name || '?')
@@ -404,7 +393,7 @@ function formatPayment(bill, date) {
   return msg;
 }
 
-// --- KEYBOARDS ---
+// --- KEYBOARDS (COMPRESSED DATA) ---
 
 function createInlineKeyboard(bill, userId) {
   if (bill.phase === 'payment') {
@@ -413,7 +402,8 @@ function createInlineKeyboard(bill, userId) {
         .filter(p => !p.hasPaid)
         .map(p => [{
           text: `${p.telegramUsername} - $${p.amountOwed.toFixed(2)} → Mark Paid`,
-          callback_data: `paid_${bill.id}_${p.telegramUserId}`
+          // ⚡ 'p' = paid, separated by ':'
+          callback_data: `p:${bill.id}:${p.telegramUserId}`
         }])
     };
   }
@@ -428,20 +418,24 @@ function createInlineKeyboard(bill, userId) {
     const d1 = bill.dishes[i];
     row.push({
       text: `${selected.includes(d1.id) ? '✓ ' : ''}${d1.name}`,
-      callback_data: `select_${bill.id}_${d1.id}`,
+      // ⚡ 's' = select, using INDEX 'i' instead of long ID
+      callback_data: `s:${bill.id}:${i}`,
     });
     if (bill.dishes[i + 1]) {
       const d2 = bill.dishes[i + 1];
+      const i2 = i + 1;
       row.push({
         text: `${selected.includes(d2.id) ? '✓ ' : ''}${d2.name}`,
-        callback_data: `select_${bill.id}_${d2.id}`,
+        // ⚡ 's' = select, using INDEX 'i2'
+        callback_data: `s:${bill.id}:${i2}`,
       });
     }
     rows.push(row);
   }
 
   if (bill.participants?.length) {
-    rows.push([{ text: '🔒 Lock & Calculate Split', callback_data: `lock_${bill.id}` }]);
+    // ⚡ 'l' = lock
+    rows.push([{ text: '🔒 Lock & Calculate Split', callback_data: `l:${bill.id}` }]);
   }
 
   return { inline_keyboard: rows };
