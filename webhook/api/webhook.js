@@ -609,18 +609,16 @@ function formatBillMessage(bill) {
     return formatPaymentPhaseMessage(bill, date);
   }
 }
-
 // Format message for selection phase
 function formatSelectionPhaseMessage(bill, date) {
   let message = `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n`;
   message += `📅 ${sanitizeForTelegram(date)}\n`;
-  message += `💰 Total: $${sanitizeForTelegram(bill.total.toFixed(2))}\n\n`; // Escaped price dot
+  message += `💰 Total: $${sanitizeForTelegram(bill.total.toFixed(2))}\n\n`;
   message += `━━━━━━━━━━━━━━━━━━\n\n`;
   message += `*SELECT YOUR DISHES:*\n\n`;
 
   // Show all dishes
   bill.dishes.forEach((dish, index) => {
-    // Escaped "1." to "1\." and hyphen to " \- " and price dot
     message += `${index + 1}\\. ${sanitizeForTelegram(dish.name)} \\- $${sanitizeForTelegram(dish.price.toFixed(2))}\n`;
   });
 
@@ -640,15 +638,17 @@ function formatSelectionPhaseMessage(bill, date) {
       if (p.selectedDishIds.length > 0) {
         message += `✓ ${sanitizeForTelegram(p.telegramUsername)}: ${dishNames}\n`;
       } else {
-        message += `⏳ ${sanitizeForTelegram(p.telegramUsername)}: (not selected yet)\n`;
+        // FIX: Escaped parentheses ( )
+        message += `⏳ ${sanitizeForTelegram(p.telegramUsername)}: \\(not selected yet\\)\n`;
       }
     });
   } else {
-    message += `_No one has selected dishes yet..._\n`;
+    // 🚨 CRITICAL FIX: Escaped the 3 dots (...) to \.\.\.
+    message += `_No one has selected dishes yet\.\.\._\n`;
   }
 
   message += `\n━━━━━━━━━━━━━━━━━━\n`;
-  message += `_Tap dishes below to select what you ate\\!_`; // Escaped !
+  message += `_Tap dishes below to select what you ate\\!_`;
 
   return message;
 }
@@ -657,8 +657,8 @@ function formatSelectionPhaseMessage(bill, date) {
 function formatPaymentPhaseMessage(bill, date) {
   let message = `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n`;
   message += `📅 ${sanitizeForTelegram(date)}\n`;
-  message += `💰 Total: $${sanitizeForTelegram(bill.total.toFixed(2))}\n`; // Escaped price dot
-  message += `🔒 *Split Calculated\\!*\n\n`; // Escaped !
+  message += `💰 Total: $${sanitizeForTelegram(bill.total.toFixed(2))}\n`;
+  message += `🔒 *Split Calculated\\!*\n\n`;
   message += `━━━━━━━━━━━━━━━━━━\n\n`;
 
   if (!bill.participants || bill.participants.length === 0) {
@@ -671,9 +671,11 @@ function formatPaymentPhaseMessage(bill, date) {
 
   // Show paid
   if (paidParticipants.length > 0) {
-    message += `*✅ PAID (${paidParticipants.length})*\n`;
+    // FIX: Escaped parentheses ( )
+    message += `*✅ PAID \\(${paidParticipants.length}\\)*\n`;
     paidParticipants.forEach(p => {
-      const paidByInfo = p.paidBy ? ` (by ${sanitizeForTelegram(p.paidBy)})` : '';
+      // FIX: Escaped parentheses ( ) in "by user"
+      const paidByInfo = p.paidBy ? ` \\(by ${sanitizeForTelegram(p.paidBy)}\\)` : '';
       message += `   ${sanitizeForTelegram(p.telegramUsername)} \\- $${sanitizeForTelegram(p.amountOwed.toFixed(2))} ✓${paidByInfo}\n`;
     });
     message += `\n`;
@@ -681,14 +683,15 @@ function formatPaymentPhaseMessage(bill, date) {
 
   // Show unpaid
   if (unpaidParticipants.length > 0) {
-    message += `*⏳ PENDING (${unpaidParticipants.length})*\n`;
+    // FIX: Escaped parentheses ( )
+    message += `*⏳ PENDING \\(${unpaidParticipants.length}\\)*\n`;
     unpaidParticipants.forEach(p => {
       message += `   ${sanitizeForTelegram(p.telegramUsername)} \\- $${sanitizeForTelegram(p.amountOwed.toFixed(2))}\n`;
     });
   }
 
   message += `\n━━━━━━━━━━━━━━━━━━\n`;
-  message += `_Tap "Mark Paid" when you've paid\\!_`; // Escaped !
+  message += `_Tap "Mark Paid" when you've paid\\!_`;
 
   return message;
 }
