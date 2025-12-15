@@ -55,10 +55,13 @@ function rateLimit(userId, action, cooldownMs = 1000) {
 }
 
 // Sanitize text for Telegram MarkdownV2
+// Stronger sanitizer for MarkdownV2
 function sanitizeForTelegram(text) {
-  if (typeof text !== 'string') return String(text); // Handle numbers automatically
-  // Escape MarkdownV2 special characters
-  return text.replace(/([_*\[\]()~`>#+=|{}.!-])/g, '\\$1');
+  if (text === null || text === undefined) return '';
+  // Convert numbers to string automatically
+  const str = String(text); 
+  // Escape ALL 18 special characters in MarkdownV2
+  return str.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
 }
 
 // Verify webhook request is from Telegram
@@ -149,10 +152,12 @@ async function handleInlineQuery(inlineQuery) {
     // Log data to ensure we aren't getting nulls
     console.log('Bill Found:', bill.restaurantName, bill.total);
 
+// ... inside handleInlineQuery ...
+
     const message = formatBillMessage(bill);
     const keyboard = createInlineKeyboard(bill, inlineQuery.from.id);
 
-    // Send to Telegram AND CHECK RESPONSE
+    // Send to Telegram
     const response = await fetch(`${TELEGRAM_API}/answerInlineQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -161,10 +166,10 @@ async function handleInlineQuery(inlineQuery) {
         results: [
           {
             type: 'article',
-            id: bill.id, // Ensure this is a valid string
-            title: `Bill: ${bill.restaurantName || 'Split Bill'}`,
-            // Description is PLAIN TEXT (no markdown needed here)
-            description: `Total: $${bill.total.toFixed(2)} - ${bill.dishes ? bill.dishes.length : 0} dishes`,
+            id: bill.id,
+            title: `Bill: ${bill.restaurantName || 'Split Bill'}`, 
+            // Description is plain text, but let's be safe and simple
+            description: `Total: $${bill.total.toFixed(2)}`, 
             input_message_content: {
               message_text: message,
               parse_mode: 'MarkdownV2',
@@ -175,6 +180,7 @@ async function handleInlineQuery(inlineQuery) {
         cache_time: 0,
       }),
     });
+
 
     // 🚨 THIS IS THE NEW PART: LOG THE ERROR 🚨
     const result = await response.json();
