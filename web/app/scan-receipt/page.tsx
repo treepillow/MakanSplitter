@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Colors } from '@/constants/colors';
-import Tesseract from 'tesseract.js';
+import { canScan, incrementScan, getRemaining, getScanCount, getTimeUntilReset, getDailyLimit } from '@/lib/scanLimits';
 
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -37,6 +37,12 @@ export default function ScanReceiptPage() {
   const [gstPercentage, setGstPercentage] = useState('9');
   const [serviceChargePercentage, setServiceChargePercentage] = useState('10');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+  const [scansRemaining, setScansRemaining] = useState(0);
+
+  // Update scans remaining on mount and when scanning
+  useEffect(() => {
+    setScansRemaining(getRemaining());
+  }, [scanning]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,82 +141,73 @@ export default function ScanReceiptPage() {
       return;
     }
 
+    // Check if user has reached daily scan limit
+    if (!canScan()) {
+      setToast({
+        message: `Daily limit reached (${getDailyLimit()} scans). Resets in ${getTimeUntilReset()}.`,
+        type: 'error',
+      });
+      return;
+    }
+
     setScanning(true);
-    setProgress(0);
+    setProgress(20);
 
     try {
-      const result = await Tesseract.recognize(
-        imageToScan,
-        'eng',
-        {
-          logger: (m) => {
-            if (m.status === 'recognizing text') {
-              setProgress(Math.round(m.progress * 100));
-            }
-          },
-        }
-      );
+      setToast({ message: 'Analyzing receipt with AI...', type: 'info' });
+      setProgress(40);
 
-      const text = result.data.text;
-      setOcrText(text);
+      // Call the Gemini API route
+      const response = await fetch('/api/scan-receipt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: imageToScan }),
+      });
 
-      const dishes = parseReceiptText(text);
+      setProgress(80);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to scan receipt');
+      }
+
+      const data = await response.json();
+      setProgress(100);
+
+      // Increment the scan count
+      incrementScan();
+      setScansRemaining(getRemaining());
+
+      // Process the dishes
+      const dishes = data.dishes.map((dish: any) => ({
+        id: `dish_${Date.now()}_${Math.random()}`,
+        name: dish.name,
+        price: dish.price,
+        sharedBy: [],
+      }));
+
+      setOcrText(data.rawText || '');
+      setScannedDishes(dishes);
 
       if (dishes.length === 0) {
         setToast({ message: 'No dishes found. Please try manual entry.', type: 'warning' });
       } else {
         setToast({ message: `Found ${dishes.length} dishes!`, type: 'success' });
-        setScannedDishes(dishes);
       }
     } catch (error) {
       console.error('OCR Error:', error);
-      setToast({ message: 'Failed to scan receipt. Please try again.', type: 'error' });
+      setToast({
+        message: error instanceof Error ? error.message : 'Failed to scan receipt. Please try again.',
+        type: 'error',
+      });
     } finally {
       setScanning(false);
+      setProgress(0);
     }
   };
 
-  const parseReceiptText = (text: string): any[] => {
-    const dishes: any[] = [];
-    const lines = text.split('\n').map(l => l.trim());
-    const pricePattern = /\$?(\d+\.\d{2})/;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line) continue;
-
-      const lowerLine = line.toLowerCase();
-      if (
-        lowerLine.includes('receipt') ||
-        lowerLine.includes('total') ||
-        lowerLine.includes('subtotal') ||
-        lowerLine.includes('gst') ||
-        lowerLine.includes('service') ||
-        lowerLine.includes('tax') ||
-        lowerLine.includes('thank you')
-      ) {
-        continue;
-      }
-
-      const priceMatch = line.match(pricePattern);
-      if (priceMatch) {
-        const price = parseFloat(priceMatch[1]);
-        let dishName = line.replace(pricePattern, '').trim();
-        dishName = dishName.replace(/^\d+x?\s*/i, ''); 
-        dishName = dishName.replace(/[*#@]+/g, '').trim(); 
-
-        if (dishName && price > 0 && price < 500) {
-          dishes.push({
-            id: `dish_${Date.now()}_${Math.random()}`,
-            name: dishName,
-            price: price,
-            sharedBy: [],
-          });
-        }
-      }
-    }
-    return dishes;
-  };
 
   const handleContinue = () => {
     if (!paidBy.trim()) {
@@ -276,6 +273,36 @@ export default function ScanReceiptPage() {
                 <li>3. AI will scan and extract dishes with prices</li>
                 <li>4. Review and confirm the details</li>
               </ol>
+            </div>
+
+            {/* Free Tier Transparency Banner */}
+            <div
+              className="max-w-2xl mx-auto rounded-lg p-4 mb-6 border"
+              style={{
+                backgroundColor: Colors.card,
+                borderColor: Colors.primary,
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🎁</div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold mb-2" style={{ color: Colors.text }}>
+                    Free AI-Powered Scanning
+                  </p>
+                  <p className="text-xs mb-2" style={{ color: Colors.textSecondary }}>
+                    We use Google Gemini AI for accurate receipt scanning. To keep this service free,
+                    we limit scans to <strong>1,500 per day</strong> (resets at midnight Pacific time).
+                  </p>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span style={{ color: Colors.primary }} className="font-semibold">
+                      {scansRemaining.toLocaleString()} scans remaining today
+                    </span>
+                    <span style={{ color: Colors.textSecondary }}>
+                      • Resets in {getTimeUntilReset()}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
