@@ -119,60 +119,41 @@ module.exports = async (req, res) => {
 };
 
 // Handle inline queries
+// Handle inline queries
 async function handleInlineQuery(inlineQuery) {
   const query = inlineQuery.query.trim();
   const queryId = inlineQuery.id;
 
   if (!query) {
-    await fetch(`${TELEGRAM_API}/answerInlineQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        inline_query_id: queryId,
-        results: [],
-        cache_time: 0,
-      }),
-    });
+    // Empty query, just return empty results
     return;
   }
 
   try {
     console.log('Searching for bill:', query);
-
-    // Get bill from Firestore
     const billDoc = await db.collection('bills').doc(query).get();
-
     console.log('Bill exists:', billDoc.exists);
 
     if (!billDoc.exists) {
-      console.log('Bill not found, returning empty results');
+      console.log('Bill not found');
+      // Return empty to stop loading spinner
       await fetch(`${TELEGRAM_API}/answerInlineQuery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inline_query_id: queryId,
-          results: [],
-          cache_time: 0,
-        }),
+        body: JSON.stringify({ inline_query_id: queryId, results: [] }),
       });
       return;
     }
 
     const bill = billDoc.data();
-    console.log('Bill data:', JSON.stringify({
-      id: bill.id,
-      restaurantName: bill.restaurantName,
-      total: bill.total,
-      dishCount: bill.dishes?.length,
-      hasSubtotal: !!bill.subtotal
-    }));
+    // Log data to ensure we aren't getting nulls
+    console.log('Bill Found:', bill.restaurantName, bill.total);
 
-    // Format bill message based on phase
     const message = formatBillMessage(bill);
     const keyboard = createInlineKeyboard(bill, inlineQuery.from.id);
 
-    // Return inline result
-    await fetch(`${TELEGRAM_API}/answerInlineQuery`, {
+    // Send to Telegram AND CHECK RESPONSE
+    const response = await fetch(`${TELEGRAM_API}/answerInlineQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -180,12 +161,13 @@ async function handleInlineQuery(inlineQuery) {
         results: [
           {
             type: 'article',
-            id: bill.id,
+            id: bill.id, // Ensure this is a valid string
             title: `Bill: ${bill.restaurantName || 'Split Bill'}`,
-            description: `Total: $${bill.total.toFixed(2)} - ${bill.dishes.length} dishes`,
+            // Description is PLAIN TEXT (no markdown needed here)
+            description: `Total: $${bill.total.toFixed(2)} - ${bill.dishes ? bill.dishes.length : 0} dishes`,
             input_message_content: {
               message_text: message,
-              parse_mode: 'MarkdownV2', // Fixed: MarkdownV2
+              parse_mode: 'MarkdownV2',
             },
             reply_markup: keyboard,
           },
@@ -193,8 +175,17 @@ async function handleInlineQuery(inlineQuery) {
         cache_time: 0,
       }),
     });
+
+    // 🚨 THIS IS THE NEW PART: LOG THE ERROR 🚨
+    const result = await response.json();
+    if (!result.ok) {
+      console.error('❌ TELEGRAM ERROR:', JSON.stringify(result));
+    } else {
+      console.log('✅ Telegram accepted the message');
+    }
+
   } catch (error) {
-    console.error('Error handling inline query:', error);
+    console.error('🔥 Error handling inline query:', error);
   }
 }
 
