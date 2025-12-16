@@ -8,7 +8,7 @@ import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Colors } from '@/constants/colors';
 import { canScan, incrementScan, getRemaining, getScanCount, getTimeUntilReset, getDailyLimit } from '@/lib/scanLimits';
-import { Camera, Upload } from 'lucide-react';
+import { Camera, Upload, Edit2, Trash2, Plus, Check, X } from 'lucide-react';
 
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -39,6 +39,11 @@ export default function ScanReceiptPage() {
   const [serviceChargePercentage, setServiceChargePercentage] = useState('10');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
   const [scansRemaining, setScansRemaining] = useState(0);
+
+  // Edit dish state
+  const [editingDishIndex, setEditingDishIndex] = useState<number | null>(null);
+  const [editDishName, setEditDishName] = useState('');
+  const [editDishPrice, setEditDishPrice] = useState('');
 
   // Update scans remaining on mount and when scanning
   useEffect(() => {
@@ -209,6 +214,63 @@ export default function ScanReceiptPage() {
     }
   };
 
+
+  // Dish editing functions
+  const handleEditDish = (index: number) => {
+    setEditingDishIndex(index);
+    setEditDishName(scannedDishes[index].name);
+    setEditDishPrice(scannedDishes[index].price.toString());
+  };
+
+  const handleSaveEdit = () => {
+    if (editingDishIndex === null) return;
+
+    const price = parseFloat(editDishPrice);
+    if (!editDishName.trim() || isNaN(price) || price <= 0) {
+      setToast({ message: 'Please enter a valid dish name and price', type: 'error' });
+      return;
+    }
+
+    const updatedDishes = [...scannedDishes];
+    updatedDishes[editingDishIndex] = {
+      ...updatedDishes[editingDishIndex],
+      name: editDishName.trim(),
+      price: price,
+    };
+    setScannedDishes(updatedDishes);
+    setEditingDishIndex(null);
+    setEditDishName('');
+    setEditDishPrice('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingDishIndex(null);
+    setEditDishName('');
+    setEditDishPrice('');
+  };
+
+  const handleDeleteDish = (index: number) => {
+    const updatedDishes = scannedDishes.filter((_, i) => i !== index);
+    setScannedDishes(updatedDishes);
+    if (editingDishIndex === index) {
+      setEditingDishIndex(null);
+      setEditDishName('');
+      setEditDishPrice('');
+    }
+  };
+
+  const handleAddDish = () => {
+    const newDish = {
+      id: `dish_${Date.now()}`,
+      name: 'New Dish',
+      price: 0,
+      sharedBy: [],
+    };
+    setScannedDishes([...scannedDishes, newDish]);
+    setEditingDishIndex(scannedDishes.length);
+    setEditDishName('New Dish');
+    setEditDishPrice('0');
+  };
 
   const handleContinue = () => {
     if (!paidBy.trim()) {
@@ -485,14 +547,118 @@ export default function ScanReceiptPage() {
                         borderColor: Colors.border,
                       }}
                     >
-                      <h3 className="text-lg font-bold mb-4" style={{ color: Colors.text }}>
-                        Found {scannedDishes.length} Dishes
-                      </h3>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold" style={{ color: Colors.text }}>
+                          Found {scannedDishes.length} Dishes
+                        </h3>
+                        <button
+                          onClick={handleAddDish}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+                          style={{
+                            backgroundColor: Colors.primaryLight,
+                            color: Colors.primary,
+                          }}
+                        >
+                          <Plus size={16} />
+                          Add Dish
+                        </button>
+                      </div>
+                      <div className="space-y-3 max-h-80 overflow-y-auto">
                         {scannedDishes.map((dish, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span style={{ color: Colors.text }}>{dish.name}</span>
-                            <span style={{ color: Colors.primary }} className="font-semibold">${dish.price.toFixed(2)}</span>
+                          <div
+                            key={idx}
+                            className="rounded-lg p-3 border"
+                            style={{
+                              backgroundColor: editingDishIndex === idx ? Colors.backgroundSecondary : Colors.white,
+                              borderColor: Colors.border,
+                            }}
+                          >
+                            {editingDishIndex === idx ? (
+                              // Edit mode
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editDishName}
+                                  onChange={(e) => setEditDishName(e.target.value)}
+                                  placeholder="Dish name"
+                                  className="w-full px-3 py-2 rounded-lg border-2 text-sm outline-none"
+                                  style={{
+                                    borderColor: Colors.primary,
+                                    color: Colors.text,
+                                  }}
+                                />
+                                <input
+                                  type="number"
+                                  value={editDishPrice}
+                                  onChange={(e) => setEditDishPrice(e.target.value)}
+                                  placeholder="Price"
+                                  step="0.01"
+                                  className="w-full px-3 py-2 rounded-lg border-2 text-sm outline-none"
+                                  style={{
+                                    borderColor: Colors.primary,
+                                    color: Colors.text,
+                                  }}
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={handleSaveEdit}
+                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+                                    style={{
+                                      backgroundColor: Colors.success,
+                                      color: Colors.white,
+                                    }}
+                                  >
+                                    <Check size={16} />
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+                                    style={{
+                                      backgroundColor: Colors.backgroundTertiary,
+                                      color: Colors.textSecondary,
+                                    }}
+                                  >
+                                    <X size={16} />
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              // View mode
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium" style={{ color: Colors.text }}>
+                                    {dish.name}
+                                  </span>
+                                  <span className="text-lg font-bold ml-3" style={{ color: Colors.primary }}>
+                                    ${dish.price.toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleEditDish(idx)}
+                                    className="p-2 rounded-lg transition-all"
+                                    style={{
+                                      backgroundColor: Colors.backgroundTertiary,
+                                      color: Colors.primary,
+                                    }}
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteDish(idx)}
+                                    className="p-2 rounded-lg transition-all"
+                                    style={{
+                                      backgroundColor: Colors.errorLight,
+                                      color: Colors.error,
+                                    }}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
