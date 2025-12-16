@@ -168,9 +168,6 @@ export default function HomePage() {
             <p className="text-sm" style={{ color: Colors.textSecondary }}>
               © {new Date().getFullYear()} MakanSplitter. All rights reserved.
             </p>
-            <p className="text-sm" style={{ color: Colors.textMuted }}>
-              Made in Singapore
-            </p>
             <div>
               <Link
                 href="/privacy"
