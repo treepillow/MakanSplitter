@@ -1,34 +1,44 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import React from 'react';
 import { Colors } from '../constants/colors';
 
-interface ButtonProps {
-  title: string;
-  onPress: () => void;
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  title?: string;
+  onPress?: () => void;
+  onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'text';
   disabled?: boolean;
   loading?: boolean;
   className?: string;
   icon?: string;
+  children?: React.ReactNode;
 }
 
 export function Button({
   title,
   onPress,
+  onClick,
   variant = 'primary',
   disabled = false,
   loading = false,
   className = '',
   icon,
+  children,
+  ...rest
 }: ButtonProps) {
+  const handleClick = () => {
+    if (onPress) onPress();
+    if (onClick) onClick();
+  };
+
   const getStyles = () => {
     if (disabled) {
       return {
-        backgroundColor: Colors.cardDark,
+        backgroundColor: Colors.gray200,
         color: Colors.textMuted,
-        border: `1px solid ${Colors.border}`,
-        boxShadow: 'none',
+        border: `2px solid ${Colors.gray200}`,
+        cursor: 'not-allowed',
       };
     }
 
@@ -36,122 +46,76 @@ export function Button({
       case 'success':
         return {
           backgroundColor: Colors.success,
-          color: Colors.black,
-          border: `1px solid ${Colors.success}`,
-          boxShadow: 'none',
+          color: Colors.white,
+          border: `2px solid ${Colors.success}`,
         };
       case 'danger':
         return {
           backgroundColor: Colors.error,
           color: Colors.white,
-          border: `1px solid ${Colors.error}`,
-          boxShadow: 'none',
+          border: `2px solid ${Colors.error}`,
         };
       case 'secondary':
         return {
-          backgroundColor: Colors.glassBackground,
+          backgroundColor: Colors.white,
           color: Colors.text,
-          border: `1px solid ${Colors.glassBorder}`,
-          boxShadow: 'none',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          border: `2px solid ${Colors.border}`,
         };
       case 'text':
         return {
           backgroundColor: 'transparent',
           color: Colors.primary,
           border: 'none',
-          boxShadow: 'none',
         };
       default:
         return {
           backgroundColor: Colors.primary,
-          color: Colors.black,
-          border: `1px solid ${Colors.primary}`,
-          boxShadow: 'none',
-        };
-    }
-  };
-
-  const getHoverStyles = () => {
-    if (disabled || variant === 'text') return {};
-
-    switch (variant) {
-      case 'success':
-        return {
-          opacity: 0.9,
-        };
-      case 'danger':
-        return {
-          opacity: 0.9,
-        };
-      case 'secondary':
-        return {
-          backgroundColor: Colors.cardHover,
-          borderColor: Colors.borderLight,
-        };
-      default:
-        return {
-          opacity: 0.9,
+          color: Colors.white,
+          border: `2px solid ${Colors.primary}`,
         };
     }
   };
 
   return (
-    <motion.button
-      onClick={onPress}
+    <button
+      onClick={handleClick}
       disabled={disabled || loading}
-      className={`rounded-xl px-8 py-4 font-semibold text-base transition-all disabled:cursor-not-allowed relative overflow-hidden ${className}`}
+      className={`rounded-lg px-8 py-3 font-semibold text-base transition-all disabled:cursor-not-allowed ${className}`}
       style={getStyles()}
-      whileHover={disabled ? {} : { scale: 1.02, ...getHoverStyles() }}
-      whileTap={disabled ? {} : { scale: 0.98 }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      onMouseEnter={(e) => {
+        if (!disabled && variant !== 'text') {
+          if (variant === 'primary') {
+            e.currentTarget.style.backgroundColor = Colors.primaryHover;
+          } else if (variant === 'secondary') {
+            e.currentTarget.style.backgroundColor = Colors.backgroundSecondary;
+            e.currentTarget.style.borderColor = Colors.primary;
+          } else {
+            e.currentTarget.style.opacity = '0.9';
+          }
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!disabled) {
+          const styles = getStyles();
+          e.currentTarget.style.backgroundColor = styles.backgroundColor;
+          e.currentTarget.style.borderColor = styles.border?.split(' ')[2] || '';
+          e.currentTarget.style.opacity = '1';
+        }
+      }}
+      {...rest}
     >
-      {/* Cyber scan line effect (only for primary buttons) */}
-      {!disabled && variant === 'primary' && !loading && (
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20"
-          initial={{ x: '-100%' }}
-          animate={{ x: '200%' }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            repeatDelay: 3,
-            ease: 'linear'
-          }}
-        />
-      )}
-
       {loading ? (
         <div className="flex items-center justify-center">
-          <motion.div
-            className="w-6 h-6 border-3 border-current border-t-transparent rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          <div
+            className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
           />
         </div>
       ) : (
-        <motion.div
-          className="flex items-center justify-center gap-2"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          {icon && (
-            <motion.span
-              className="text-xl"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            >
-              {icon}
-            </motion.span>
-          )}
-          <span>{title}</span>
-        </motion.div>
+        <div className="flex items-center justify-center gap-2">
+          {icon && <span className="text-xl">{icon}</span>}
+          {children || title}
+        </div>
       )}
-    </motion.button>
+    </button>
   );
 }

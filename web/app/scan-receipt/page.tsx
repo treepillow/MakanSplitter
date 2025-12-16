@@ -8,6 +8,7 @@ import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Colors } from '@/constants/colors';
 import { canScan, incrementScan, getRemaining, getScanCount, getTimeUntilReset, getDailyLimit } from '@/lib/scanLimits';
+import { Camera, Upload } from 'lucide-react';
 
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -254,7 +255,11 @@ export default function ScanReceiptPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="text-4xl sm:text-6xl mb-4">📸</div>
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center" style={{ backgroundColor: Colors.primaryLight }}>
+                <Camera size={36} style={{ color: Colors.primary }} className="sm:w-12 sm:h-12" />
+              </div>
+            </div>
             <h1 className="text-2xl sm:text-4xl font-bold mb-3" style={{ color: Colors.text }}>
               Scan Receipt
             </h1>
@@ -285,7 +290,6 @@ export default function ScanReceiptPage() {
               }}
             >
               <div className="flex items-start gap-3">
-                <div className="text-2xl">🎁</div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold mb-2" style={{ color: Colors.text }}>
                     Free AI-Powered Scanning
@@ -315,7 +319,11 @@ export default function ScanReceiptPage() {
                 style={{ borderColor: Colors.primary }}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <div className="text-6xl mb-4">📷</div>
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 rounded-xl flex items-center justify-center" style={{ backgroundColor: Colors.primaryLight }}>
+                    <Upload size={32} style={{ color: Colors.primary }} />
+                  </div>
+                </div>
                 <p className="text-lg font-semibold mb-2" style={{ color: Colors.text }}>
                   Click to upload receipt
                 </p>
@@ -419,7 +427,7 @@ export default function ScanReceiptPage() {
                           color: Colors.primary,
                         }}
                       >
-                        Re-crop Image ✂️
+                        Re-crop Image
                       </button>
                     )}
                   </div>
@@ -505,7 +513,6 @@ export default function ScanReceiptPage() {
                         value={paidBy}
                         onChangeText={setPaidBy}
                         placeholder="e.g. John, Me"
-                        icon="👤"
                       />
                       <Input
                         label="GST (%)"
@@ -513,7 +520,6 @@ export default function ScanReceiptPage() {
                         onChangeText={setGstPercentage}
                         placeholder="9"
                         type="number"
-                        icon="📋"
                       />
                       <Input
                         label="Service Charge (%)"
@@ -521,7 +527,6 @@ export default function ScanReceiptPage() {
                         onChangeText={setServiceChargePercentage}
                         placeholder="10"
                         type="number"
-                        icon="🔔"
                       />
                     </div>
                   </>
@@ -546,7 +551,7 @@ export default function ScanReceiptPage() {
                   />
                   {!ocrText ? (
                     <Button
-                      title={scanning ? `Scanning... ${progress}%` : "Scan Receipt 🔍"}
+                      title={scanning ? `Scanning... ${progress}%` : "Scan Receipt"}
                       onPress={handleScanReceipt}
                       disabled={scanning}
                       className="w-full sm:flex-[2]"
@@ -576,7 +581,7 @@ export default function ScanReceiptPage() {
               style={{ backgroundColor: Colors.backgroundTertiary }}
             >
               <p className="text-xs text-center" style={{ color: Colors.textSecondary }}>
-                💡 <strong>Tip:</strong> Crop tightly around the dish names and prices for the best accuracy.
+                <strong>Tip:</strong> Crop tightly around the dish names and prices for the best accuracy.
               </p>
             </div>
           </div>

@@ -1,63 +1,65 @@
 export const Colors = {
-  // Cyber Dark Theme - Award-winning minimalist aesthetic
-  background: '#0a0a0f',          // Deep space black
-  backgroundSecondary: '#14141e',  // Slightly lighter for layering
-  backgroundTertiary: '#1a1a2e',   // Card backgrounds
+  // Modern Minimal Color System
+  // Inspired by Apple, Linear, and Stripe design language
 
-  // Card/Surface colors with transparency for glassmorphism
-  card: 'rgba(20, 20, 30, 0.6)',
-  cardHover: 'rgba(30, 30, 45, 0.7)',
-  cardDark: 'rgba(10, 10, 15, 0.8)',
+  // Backgrounds - Soft, eye-friendly neutrals
+  background: '#FAFAF9',           // Warm off-white (easier on eyes)
+  backgroundSecondary: '#F5F5F4',  // Subtle warm gray
+  backgroundTertiary: '#E7E5E4',   // Light warm gray for cards
 
-  // Glass effects
-  glassBackground: 'rgba(15, 15, 25, 0.7)',
-  glassBorder: 'rgba(255, 255, 255, 0.1)',
+  // Card/Surface colors - Solid, no transparency
+  card: '#FFFFFF',
+  cardHover: '#F8F9FA',
+  cardBorder: '#E9ECEF',
 
-  // Primary Brand Colors - Electric cyan with glow
-  primary: '#00f0ff',              // Neon cyan
-  primaryGlow: 'rgba(0, 240, 255, 0)',
-  primaryDark: '#00b8cc',
+  // Primary Brand Color - Single green accent
+  primary: '#10B981',              // Modern emerald green
+  primaryHover: '#059669',         // Darker on hover
+  primaryLight: '#D1FAE5',         // Light tint for backgrounds
 
-  // Secondary Brand Colors - Vibrant purple
-  secondary: '#b400ff',            // Neon purple
-  secondaryGlow: 'rgba(180, 0, 255, 0)',
-  secondaryDark: '#8800cc',
+  // Neutrals - Gray scale for text and borders
+  gray900: '#111827',              // Almost black for headings
+  gray800: '#1F2937',              // Dark gray for body text
+  gray700: '#374151',              // Medium gray
+  gray600: '#4B5563',              //
+  gray500: '#6B7280',              // Muted text
+  gray400: '#9CA3AF',              // Placeholder text
+  gray300: '#D1D5DB',              // Borders
+  gray200: '#E5E7EB',              // Dividers
+  gray100: '#F3F4F6',              // Subtle backgrounds
+  gray50: '#F9FAFB',               // Lightest gray
 
-  // Accent Colors - Keep for backwards compatibility
-  accent: '#00f0ff',               // Match primary
-  accentLight: '#33f3ff',
-  accentDark: '#00d9e6',
+  // Status Colors - Subtle and professional
+  success: '#10B981',              // Green
+  successLight: '#D1FAE5',
+  warning: '#F59E0B',              // Amber
+  warningLight: '#FEF3C7',
+  error: '#EF4444',                // Red
+  errorLight: '#FEE2E2',
 
-  // Success/Warning/Error - Cyber palette
-  success: '#00ff94',              // Neon green
-  successLight: '#33ffa8',
-  successDark: '#00cc76',
-  warning: '#ffaa00',              // Bright orange
-  warningLight: '#ffbb33',
-  warningDark: '#cc8800',
-  error: '#ff0080',                // Hot pink/magenta
-  errorLight: '#ff3399',
-  errorDark: '#cc0066',
+  // Text Colors - High contrast, readable
+  text: '#111827',                 // Dark gray, not pure black
+  textSecondary: '#6B7280',        // Medium gray
+  textMuted: '#9CA3AF',            // Light gray
 
-  // Text Colors - high contrast for dark cyber theme
-  text: '#e0e0ff',                 // Slightly purple-tinted white
-  textSecondary: '#b8b8d4',        // Light lavender
-  textLight: '#9090aa',            // Medium lavender
-  textMuted: '#8888aa',            // Muted lavender
-
-  // Border Colors - subtle cyber accents
-  border: '#1a1a2e',
-  borderLight: '#2a2a3e',
-  borderGlow: 'rgba(0, 240, 255, 0.2)',
+  // Border Colors - Subtle and minimal
+  border: '#E5E7EB',
+  borderLight: '#F3F4F6',
+  borderDark: '#D1D5DB',
 
   // Special Colors
   white: '#FFFFFF',
   black: '#000000',
-  overlay: 'rgba(0, 0, 0, 0.85)',
-  shadowDark: 'rgba(0, 0, 0, 0.6)',
-  shadow: 'rgba(0, 0, 0, 0.4)',
+  overlay: 'rgba(0, 0, 0, 0.5)',
+  shadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+  shadowMd: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+  shadowLg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
 
-  // Glow effects for cyber aesthetic
-  glowCyan: '0 0 20px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.3)',
-  glowPurple: '0 0 20px rgba(180, 0, 255, 0.3), 0 0 40px rgba(180, 0, 255, 0.3), inset 0 0 10px rgba(180, 0, 255, 0.3)',
+  // Legacy support (for components not yet updated)
+  glassBackground: '#FFFFFF',
+  glassBorder: '#E5E7EB',
+  primaryGlow: 'transparent',
+  secondary: '#10B981',
+  accent: '#10B981',
+  borderGlow: '#E5E7EB',
 };

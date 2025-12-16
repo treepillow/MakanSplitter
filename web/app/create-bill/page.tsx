@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { Toast } from '@/components/Toast';
@@ -19,7 +19,6 @@ export default function CreateBillScreen() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   const handleContinue = () => {
-    // Validate paidBy
     const paidByValidation = validatePaidBy(paidBy);
     if (!paidByValidation.valid) {
       setToast({ message: paidByValidation.error!, type: 'error' });
@@ -29,14 +28,12 @@ export default function CreateBillScreen() {
     const gst = parseFloat(gstPercentage) || 0;
     const serviceCharge = parseFloat(serviceChargePercentage) || 0;
 
-    // Validate GST
     const gstValidation = validatePercentage(gst, 'GST percentage');
     if (!gstValidation.valid) {
       setToast({ message: gstValidation.error!, type: 'error' });
       return;
     }
 
-    // Validate Service Charge
     const serviceValidation = validatePercentage(serviceCharge, 'Service charge percentage');
     if (!serviceValidation.valid) {
       setToast({ message: serviceValidation.error!, type: 'error' });
@@ -64,93 +61,90 @@ export default function CreateBillScreen() {
           onClose={() => setToast(null)}
         />
       )}
-      <div className="min-h-screen" style={{ backgroundColor: Colors.background }}>
-        <motion.div
-          className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+      <div className="min-h-screen py-12 px-4 sm:px-6" style={{ backgroundColor: Colors.background }}>
+        <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <motion.div
-            className="text-center mb-8 sm:mb-12"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h1 className="text-3xl sm:text-4xl font-bold mb-6" style={{ color: Colors.text }}>
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-6" style={{ color: Colors.text }}>
               Create New Bill
             </h1>
-            <div className="flex justify-center gap-3 mb-4">
-              <div className="w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+
+            {/* Progress Indicators */}
+            <div className="flex justify-center gap-2 mb-4">
+              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: Colors.primary }} />
+              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: Colors.border }} />
+              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: Colors.border }} />
             </div>
-            <p className="text-sm font-semibold mb-3" style={{ color: Colors.primary }}>
-              Step 1 of 3: Bill Information
+
+            <p className="text-sm font-semibold mb-2" style={{ color: Colors.primary }}>
+              Step 1 of 3
             </p>
-            <p className="text-sm max-w-md mx-auto" style={{ color: Colors.textMuted }}>
-              Enter who paid and the tax percentages. You'll add dishes next.
+            <p className="text-sm" style={{ color: Colors.textSecondary }}>
+              Enter who paid and the tax percentages
             </p>
-          </motion.div>
+          </div>
 
-          {/* Content */}
-          <div className="max-w-2xl mx-auto">
-            <motion.div
-              className="rounded-2xl p-8 sm:p-10 border-2 space-y-8 mb-8"
-              style={{
-                backgroundColor: Colors.glassBackground,
-                borderColor: Colors.borderGlow,
-                backdropFilter: 'blur(20px)',
-              }}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Input
-                label="Who Paid the Bill?"
-                value={paidBy}
-                onChangeText={setPaidBy}
-                placeholder="e.g. John, Me"
-              />
+          {/* Form Card */}
+          <div className="rounded-2xl p-8 border mb-8" style={{ backgroundColor: Colors.card, borderColor: Colors.border }}>
+            <div className="space-y-6">
+              {/* Paid By */}
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: Colors.text }}>
+                  Who Paid? *
+                </label>
+                <Input
+                  value={paidBy}
+                  onChange={(e) => setPaidBy(e.target.value)}
+                  placeholder="Enter name (e.g., John)"
+                  maxLength={50}
+                />
+                <p className="text-xs mt-1" style={{ color: Colors.textMuted }}>
+                  This person will receive payments from others
+                </p>
+              </div>
 
-              <Input
-                label="GST (%)"
-                value={gstPercentage}
-                onChangeText={setGstPercentage}
-                placeholder="9"
-                type="number"
-              />
+              {/* GST */}
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: Colors.text }}>
+                  GST %
+                </label>
+                <Input
+                  type="number"
+                  value={gstPercentage}
+                  onChange={(e) => setGstPercentage(e.target.value)}
+                  placeholder="9"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
 
-              <Input
-                label="Service Charge (%)"
-                value={serviceChargePercentage}
-                onChangeText={setServiceChargePercentage}
-                placeholder="10"
-                type="number"
-              />
-
-              <p className="text-sm text-center pt-4" style={{ color: Colors.textSecondary }}>
-                💡 In Singapore, GST is typically 9% and service charge is 10%
-              </p>
-            </motion.div>
-
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 sm:justify-center">
-              <Button
-                title="Cancel"
-                variant="secondary"
-                onPress={() => router.push('/')}
-                className="w-full sm:flex-1 sm:max-w-[200px]"
-              />
-              <Button
-                title="Continue →"
-                onPress={handleContinue}
-                className="w-full sm:flex-[2] sm:max-w-[400px]"
-              />
+              {/* Service Charge */}
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: Colors.text }}>
+                  Service Charge %
+                </label>
+                <Input
+                  type="number"
+                  value={serviceChargePercentage}
+                  onChange={(e) => setServiceChargePercentage(e.target.value)}
+                  placeholder="10"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
             </div>
           </div>
-        </motion.div>
+
+          {/* Continue Button */}
+          <Button onClick={handleContinue} className="w-full">
+            <span className="flex items-center justify-center gap-2">
+              Continue to Add Dishes
+              <ArrowRight size={18} />
+            </span>
+          </Button>
+        </div>
       </div>
     </>
   );

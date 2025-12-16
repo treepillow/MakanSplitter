@@ -110,7 +110,6 @@ export default function BillSummaryScreen() {
       >
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
-          <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">📋</div>
           <h1 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4" style={{ color: Colors.text }}>
             Bill Summary
           </h1>
@@ -203,7 +202,7 @@ export default function BillSummaryScreen() {
               }}
             >
               <h3 className="text-xl font-bold mb-4" style={{ color: Colors.text }}>
-                📱 Share in Telegram
+                Share in Telegram
               </h3>
 
               <div className="space-y-4 mb-6">
@@ -265,7 +264,7 @@ export default function BillSummaryScreen() {
 
               <div className="rounded-lg p-4" style={{ backgroundColor: Colors.backgroundTertiary }}>
                 <p className="text-xs" style={{ color: Colors.textSecondary }}>
-                  💡 <strong>Tip:</strong> The bot works in any Telegram chat - no need to add it to your group!
+                  <strong>Tip:</strong> The bot works in any Telegram chat - no need to add it to your group!
                 </p>
               </div>
             </div>
@@ -281,7 +280,7 @@ export default function BillSummaryScreen() {
             />
             {!billId ? (
               <Button
-                title={saving ? "Saving..." : "Save & Share 📱"}
+                title={saving ? "Saving..." : "Save & Share"}
                 onPress={handleSaveBill}
                 className="w-full sm:flex-[2]"
                 disabled={saving}

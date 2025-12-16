@@ -96,12 +96,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create bill with server timestamp using client-provided ID
+    // Set TTL for automatic deletion after 30 days
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
     const billToSave = {
       ...billData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       phase: 'selection',
       participants: [],
+      expiresAt: expiresAt, // Firebase will auto-delete bills older than this
     };
 
     // Save to Firestore with the client-provided ID

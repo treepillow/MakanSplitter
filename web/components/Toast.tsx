@@ -53,9 +53,9 @@ export function Toast({ message, type = 'info', onClose, duration = 3000 }: Toas
       case 'error':
         return '✕';
       case 'warning':
-        return '⚠';
+        return '!';
       default:
-        return 'ℹ';
+        return 'i';
     }
   };
 

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BillProvider } from "@/context/BillContext";
 import { Navbar } from "@/components/Navbar";
+import { Colors } from "@/constants/colors";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MakanSplit - Split bills with friends",
-  description: "Easily split bills with friends. Modern bill splitting made simple.",
+  title: "MakanSplitter - Split bills effortlessly",
+  description: "Quick and simple bill splitting. No sign-up required. Generate your bill split message instantly.",
 };
 
 export default function RootLayout({
@@ -21,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="w-full">
-      <body className={`${inter.variable} font-sans antialiased w-full`} style={{ backgroundColor: '#0F172A' }}>
+      <body className={`${inter.variable} font-sans antialiased w-full`} style={{ backgroundColor: Colors.background }}>
         <BillProvider>
           <Navbar />
           {children}
