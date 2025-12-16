@@ -23,25 +23,25 @@ export function Toast({ message, type = 'info', onClose, duration = 3000 }: Toas
         return {
           backgroundColor: Colors.success,
           borderColor: Colors.successLight,
-          boxShadow: `0 0 30px ${Colors.successLight}60, 0 0 60px ${Colors.successDark}40, inset 0 0 15px ${Colors.successLight}20`,
+          boxShadow: Colors.shadowMd,
         };
       case 'error':
         return {
           backgroundColor: Colors.error,
           borderColor: Colors.errorLight,
-          boxShadow: `0 0 30px ${Colors.errorLight}60, 0 0 60px ${Colors.errorDark}40, inset 0 0 15px ${Colors.errorLight}20`,
+          boxShadow: Colors.shadowMd,
         };
       case 'warning':
         return {
           backgroundColor: Colors.warning,
           borderColor: Colors.warningLight,
-          boxShadow: `0 0 30px ${Colors.warningLight}60, 0 0 60px ${Colors.warningDark}40, inset 0 0 15px ${Colors.warningLight}20`,
+          boxShadow: Colors.shadowMd,
         };
       default:
         return {
           backgroundColor: Colors.primary,
           borderColor: Colors.primary,
-          boxShadow: `0 0 30px ${Colors.primaryGlow}, 0 0 60px ${Colors.primaryGlow}, inset 0 0 15px ${Colors.primaryGlow}`,
+          boxShadow: Colors.shadowMd,
         };
     }
   };
