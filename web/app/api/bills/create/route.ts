@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, increment, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, increment, updateDoc, Timestamp } from 'firebase/firestore';
 import { validateBill } from '@/utils/validation';
 
 // Simple in-memory rate limiter (use Redis in production for multi-instance)
@@ -102,11 +102,12 @@ export async function POST(request: NextRequest) {
 
     const billToSave = {
       ...billData,
+      date: Timestamp.fromDate(new Date(billData.date)), // Convert date string to Timestamp
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       phase: 'selection',
       participants: [],
-      expiresAt: expiresAt, // Firebase will auto-delete bills older than this
+      expiresAt: Timestamp.fromDate(expiresAt), // Convert to Firestore Timestamp for TTL
     };
 
     // Save to Firestore with the client-provided ID
