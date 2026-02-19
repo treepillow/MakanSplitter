@@ -115,7 +115,7 @@ Return a JSON array in this EXACT format:
 If no items are found, return an empty array: []`;
 
     // Call Gemini REST API directly
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${apiKey}`;
 
     let result;
     for (let i = 0; i < MAX_RETRIES; i++) {
