@@ -45,8 +45,12 @@ Set it as your Telegram webhook:
 ```bash
 curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://your-project.vercel.app/api/webhook"}'
+  -d '{"url": "https://your-project.vercel.app/api/webhook", "allowed_updates": ["message", "inline_query", "chosen_inline_result", "callback_query"]}'
 ```
+
+Also enable **inline feedback** so the bot receives `chosen_inline_result` updates
+(used to record who shared a bill as its creator): message @BotFather, send
+`/setinlinefeedback`, pick your bot, and choose **Enabled**.
 
 ## Testing
 

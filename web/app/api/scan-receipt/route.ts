@@ -101,15 +101,16 @@ export async function POST(request: NextRequest) {
 
 IMPORTANT RULES:
 1. Extract ONLY individual food/drink items (NOT subtotals, totals, GST, service charges, or taxes)
-2. For each item, provide the dish name and price
-3. Handle both English and Chinese text
-4. Ignore quantity multipliers (1x, 2x, etc.) - just give the item name
-5. Return ONLY valid JSON, no markdown code blocks
+2. For each item, provide the dish name, the price of ONE unit, and the quantity
+3. If a line shows a quantity multiplier (e.g. "2x Chicken Rice $10.00"), set quantity to that number and price to the PER-UNIT price (10.00 / 2 = 5.00)
+4. If no quantity is shown, use quantity 1 and the printed price
+5. Handle both English and Chinese text
+6. Return ONLY valid JSON, no markdown code blocks
 
 Return a JSON array in this EXACT format:
 [
-  {"name": "Dish Name", "price": 12.50},
-  {"name": "Another Dish", "price": 8.00}
+  {"name": "Dish Name", "price": 12.50, "quantity": 1},
+  {"name": "Another Dish", "price": 8.00, "quantity": 2}
 ]
 
 If no items are found, return an empty array: []`;
@@ -190,8 +191,24 @@ If no items are found, return an empty array: []`;
       );
     }
 
+    // Expand quantities into separate line items so each portion can be
+    // claimed individually in the Telegram poll (e.g. "Chicken Rice #1", "#2").
+    // A single merged line would wrongly split one portion's price among
+    // everyone who ordered their own.
+    const expandedDishes: { name: string; price: number }[] = [];
+    for (const dish of dishes) {
+      const quantity = Math.min(Math.max(Math.round(Number(dish.quantity) || 1), 1), 50);
+      if (quantity === 1) {
+        expandedDishes.push({ name: dish.name, price: dish.price });
+      } else {
+        for (let unit = 1; unit <= quantity; unit++) {
+          expandedDishes.push({ name: `${dish.name} #${unit}`, price: dish.price });
+        }
+      }
+    }
+
     return NextResponse.json({
-      dishes,
+      dishes: expandedDishes,
       rawText: text,
     });
   } catch (error) {

@@ -75,8 +75,16 @@ module.exports = async (req, res) => {
   try {
     const update = req.body;
 
+    if (update.message) {
+      await handleMessage(update.message);
+    }
+
     if (update.inline_query) {
       await handleInlineQuery(update.inline_query);
+    }
+
+    if (update.chosen_inline_result) {
+      await handleChosenInlineResult(update.chosen_inline_result);
     }
 
     if (update.callback_query) {
@@ -110,7 +118,7 @@ async function handleInlineQuery(inlineQuery) {
 
     const bill = billDoc.data();
     const message = formatBillMessage(bill);
-    const keyboard = createInlineKeyboard(bill, inlineQuery.from.id);
+    const keyboard = createInlineKeyboard(bill);
 
     await answerInline(queryId, [
       {
@@ -140,6 +148,90 @@ async function answerInline(id, results) {
   if (!res.ok) console.error('Telegram Error:', await res.text());
 }
 
+// --- MESSAGE HANDLER (/start deep link from web app) ---
+
+async function handleMessage(message) {
+  const text = message.text || '';
+  const chatId = message.chat.id;
+  const userId = message.from.id;
+
+  const startMatch = text.match(/^\/start(?:\s+(bill_[\w-]+))?/);
+  if (!startMatch) return;
+
+  const billId = startMatch[1];
+
+  if (!billId) {
+    await sendMessage(chatId,
+      '👋 Welcome to MakanSplit\\!\n\n' +
+      'Create a bill at the web app, then tap *Open in Telegram* to share it with your group\\.');
+    return;
+  }
+
+  try {
+    const billRef = db.collection('bills').doc(billId);
+    const billDoc = await billRef.get();
+
+    if (!billDoc.exists) {
+      await sendMessage(chatId, '❌ Bill not found\\. It may have expired \\(bills are kept for 30 days\\)\\.');
+      return;
+    }
+
+    const bill = billDoc.data();
+
+    // The person opening the deep link came from the web app - they are the
+    // bill creator. Only set if not already claimed.
+    if (!bill.creatorTelegramId) {
+      await billRef.update({ creatorTelegramId: userId });
+    }
+
+    // switch_inline_query opens Telegram's chat picker and pre-fills the
+    // inline query, so the user can't skip the "wait for the popup" step.
+    await sendMessage(chatId,
+      `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n` +
+      `💰 Total: $${tgMoney(bill.total)}\n\n` +
+      `Tap the button below, pick your group chat, then *tap the bill card that pops up* to post it\\.`,
+      {
+        inline_keyboard: [[
+          { text: '📤 Share bill to a chat', switch_inline_query: billId }
+        ]]
+      });
+  } catch (e) {
+    console.error('Start handler error:', e);
+  }
+}
+
+async function sendMessage(chatId, text, replyMarkup) {
+  const body = { chat_id: chatId, text, parse_mode: 'MarkdownV2' };
+  if (replyMarkup) body.reply_markup = replyMarkup;
+  const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) console.error('sendMessage Error:', await res.text());
+}
+
+// --- CHOSEN INLINE RESULT (captures who shared the bill) ---
+// Requires "inline feedback" to be enabled via @BotFather (/setinlinefeedback).
+// Fallback creator capture in case the sharer skipped the /start deep link.
+
+async function handleChosenInlineResult(chosenResult) {
+  const billId = chosenResult.result_id;
+  const userId = chosenResult.from.id;
+
+  try {
+    const billRef = db.collection('bills').doc(billId);
+    const billDoc = await billRef.get();
+    if (!billDoc.exists) return;
+
+    if (!billDoc.data().creatorTelegramId) {
+      await billRef.update({ creatorTelegramId: userId });
+    }
+  } catch (e) {
+    console.error('Chosen inline result error:', e);
+  }
+}
+
 // --- CALLBACK HANDLER (BUTTONS) ---
 
 async function handleCallbackQuery(callbackQuery) {
@@ -165,21 +257,27 @@ async function handleCallbackQuery(callbackQuery) {
     return;
   }
 
-  await answerCallback(callbackQuery.id, '⏳ Updating...');
+  // A callback query can only be answered ONCE - answering early with
+  // "Updating..." would swallow every error alert below. Handlers return
+  // { text, alert } and we answer exactly once at the end.
+  let result = {};
 
   if (action === 's') { // 's' = select
-    await handleDishSelection(billId, payload, userId, username, inlineMsgId, isInline);
+    result = await handleDishSelection(billId, payload, userId, username, inlineMsgId, isInline);
   } else if (action === 'l') { // 'l' = lock
-    await handleLockBill(billId, userId, inlineMsgId, isInline, callbackQuery.id);
+    result = await handleLockBill(billId, userId, inlineMsgId, isInline);
   } else if (action === 'p') { // 'p' = paid
-    await handleMarkPaid(billId, payload, userId, username, inlineMsgId, isInline, callbackQuery.id);
+    result = await handleMarkPaid(billId, payload, userId, username, inlineMsgId, isInline);
   }
+
+  await answerCallback(callbackQuery.id, result.text || '', result.alert || false);
 }
 
 // --- DATABASE LOGIC ---
 
 async function handleDishSelection(billId, dishIndexStr, userId, username, inlineMsgId, isInline) {
   const dishIndex = parseInt(dishIndexStr);
+  let feedback = '';
 
   try {
     const billRef = db.collection('bills').doc(billId);
@@ -187,12 +285,12 @@ async function handleDishSelection(billId, dishIndexStr, userId, username, inlin
       const doc = await t.get(billRef);
       if (!doc.exists) throw new Error('No bill');
       const bill = doc.data();
-      
+
       if (bill.phase !== 'selection') throw new Error('Locked');
-      
+
       // Get Dish ID from Index (Safe & Short)
       if (!bill.dishes || !bill.dishes[dishIndex]) throw new Error('Invalid dish');
-      const dishId = bill.dishes[dishIndex].id;
+      const dish = bill.dishes[dishIndex];
 
       if (!bill.participants) bill.participants = [];
 
@@ -201,74 +299,112 @@ async function handleDishSelection(billId, dishIndexStr, userId, username, inlin
         bill.participants.push({ telegramUserId: userId, telegramUsername: username, selectedDishIds: [], hasPaid: false });
         pIndex = bill.participants.length - 1;
       }
-      
+
       const p = bill.participants[pIndex];
-      const dIdx = p.selectedDishIds.indexOf(dishId);
-      if (dIdx === -1) p.selectedDishIds.push(dishId);
-      else p.selectedDishIds.splice(dIdx, 1);
-      
-      if (!bill.creatorTelegramId && bill.participants.length > 0) bill.creatorTelegramId = userId;
-      
-      t.update(billRef, { participants: bill.participants, creatorTelegramId: bill.creatorTelegramId || null });
+      const dIdx = p.selectedDishIds.indexOf(dish.id);
+      if (dIdx === -1) {
+        p.selectedDishIds.push(dish.id);
+        feedback = `✓ Added ${dish.name}`;
+      } else {
+        p.selectedDishIds.splice(dIdx, 1);
+        feedback = `✗ Removed ${dish.name}`;
+      }
+
+      t.update(billRef, { participants: bill.participants });
     });
 
     const updated = (await billRef.get()).data();
-    await updateInlineMessage(updated, inlineMsgId, isInline, userId);
-  } catch (e) { console.error('Select error:', e); }
+    await updateInlineMessage(updated, inlineMsgId, isInline);
+    return { text: feedback };
+  } catch (e) {
+    console.error('Select error:', e);
+    if (e.message === 'Locked') return { text: '🔒 Bill is already locked', alert: true };
+    if (e.message === 'No bill') return { text: '❌ Bill not found', alert: true };
+    return { text: '⚠️ Something went wrong, try again', alert: true };
+  }
 }
 
-async function handleLockBill(billId, userId, inlineMsgId, isInline, cbId) {
+async function handleLockBill(billId, userId, inlineMsgId, isInline) {
   try {
     const billRef = db.collection('bills').doc(billId);
     await db.runTransaction(async (t) => {
       const doc = await t.get(billRef);
+      if (!doc.exists) throw new Error('No bill');
       const bill = doc.data();
-      
+
       if (bill.creatorTelegramId && bill.creatorTelegramId !== userId) throw new Error('Creator only');
       if (bill.phase !== 'selection') throw new Error('Already locked');
-      
+
       const hasSelections = bill.participants?.some(p => p.selectedDishIds.length > 0);
       if (!hasSelections) throw new Error('No selections');
 
+      // Every dish must be claimed by someone, otherwise the sum of what
+      // participants owe won't add up to the bill total.
+      const unclaimed = bill.dishes.filter(d =>
+        !bill.participants.some(p => p.selectedDishIds.includes(d.id))
+      );
+      if (unclaimed.length > 0) {
+        const err = new Error('Unclaimed');
+        err.dishNames = unclaimed.map(d => d.name).join(', ');
+        throw err;
+      }
+
       calculateAmounts(bill);
-      t.update(billRef, { phase: 'payment', participants: bill.participants });
+      t.update(billRef, {
+        phase: 'payment',
+        participants: bill.participants,
+        // If no one claimed creator via /start or inline share, first locker becomes creator
+        creatorTelegramId: bill.creatorTelegramId || userId,
+        lockedAt: new Date().toISOString(),
+      });
     });
 
     const updated = (await billRef.get()).data();
-    await updateInlineMessage(updated, inlineMsgId, isInline, userId);
-  } catch (e) { 
+    await updateInlineMessage(updated, inlineMsgId, isInline);
+    return { text: '🔒 Split calculated!' };
+  } catch (e) {
     console.error('Lock error:', e);
-    if (e.message === 'Creator only') await answerCallback(cbId, '🔒 Only creator can lock', true);
-    if (e.message === 'No selections') await answerCallback(cbId, '⚠️ Select dishes first', true);
+    if (e.message === 'Creator only') return { text: '🔒 Only the bill creator can lock', alert: true };
+    if (e.message === 'No selections') return { text: '⚠️ Select dishes first', alert: true };
+    if (e.message === 'Already locked') return { text: '🔒 Bill is already locked', alert: true };
+    if (e.message === 'No bill') return { text: '❌ Bill not found', alert: true };
+    if (e.message === 'Unclaimed') return { text: `⚠️ No one claimed: ${e.dishNames}. Every dish needs an owner before locking!`, alert: true };
+    return { text: '⚠️ Lock failed, try again', alert: true };
   }
 }
 
-async function handleMarkPaid(billId, targetIdStr, userId, username, inlineMsgId, isInline, cbId) {
+async function handleMarkPaid(billId, targetIdStr, userId, username, inlineMsgId, isInline) {
   const targetId = parseInt(targetIdStr);
 
   try {
     const billRef = db.collection('bills').doc(billId);
     await db.runTransaction(async (t) => {
       const doc = await t.get(billRef);
+      if (!doc.exists) throw new Error('No bill');
       const bill = doc.data();
-      
+
       if (bill.phase !== 'payment') throw new Error('Not locked');
       if (bill.creatorTelegramId !== userId && targetId !== userId) throw new Error('Unauthorized');
-      
+
       const p = bill.participants.find(p => p.telegramUserId === targetId);
       if (!p) throw new Error('No participant');
       if (p.hasPaid) throw new Error('Already paid');
-      
+
       p.hasPaid = true;
       p.paidBy = username;
+      p.paidAt = new Date().toISOString();
       t.update(billRef, { participants: bill.participants });
     });
 
     const updated = (await billRef.get()).data();
-    await updateInlineMessage(updated, inlineMsgId, isInline, userId);
-  } catch (e) { 
-    console.error('Pay error:', e); 
-    if (e.message === 'Unauthorized') await answerCallback(cbId, '🔒 Only creator/self can mark paid', true);
+    await updateInlineMessage(updated, inlineMsgId, isInline);
+    return { text: '✅ Marked as paid!' };
+  } catch (e) {
+    console.error('Pay error:', e);
+    if (e.message === 'Unauthorized') return { text: '🔒 Only the creator or the person themselves can mark paid', alert: true };
+    if (e.message === 'Already paid') return { text: '✅ Already marked as paid' };
+    if (e.message === 'No bill') return { text: '❌ Bill not found', alert: true };
+    return { text: '⚠️ Something went wrong, try again', alert: true };
   }
 }
 
@@ -286,16 +422,26 @@ function calculateAmounts(bill) {
         sub += d.price / sharers;
       }
     });
-    p.amountOwed = sub * (1 + svc) * (1 + gst);
+    p.amountOwed = Math.round(sub * (1 + svc) * (1 + gst) * 100) / 100;
   });
+
+  // Rounding each share independently can leave the sum a few cents off the
+  // bill total - put the difference on the largest share so it adds up exactly.
+  const totalCents = Math.round(bill.total * 100);
+  const sumCents = bill.participants.reduce((s, p) => s + Math.round(p.amountOwed * 100), 0);
+  const diffCents = totalCents - sumCents;
+  if (diffCents !== 0 && Math.abs(diffCents) <= bill.participants.length) {
+    const largest = bill.participants.reduce((a, b) => (a.amountOwed >= b.amountOwed ? a : b));
+    largest.amountOwed = Math.round(largest.amountOwed * 100 + diffCents) / 100;
+  }
 }
 
 // --- MESSAGE UPDATER ---
 
-async function updateInlineMessage(bill, inlineMsgId, isInline, userId) {
+async function updateInlineMessage(bill, inlineMsgId, isInline) {
   if (!isInline) return;
   const msg = formatBillMessage(bill);
-  const kb = createInlineKeyboard(bill, userId);
+  const kb = createInlineKeyboard(bill);
 
   await fetch(`${TELEGRAM_API}/editMessageText`, {
     method: 'POST',
@@ -358,7 +504,8 @@ function formatSelection(bill, date) {
   }
 
   msg += `\n━━━━━━━━━━━━━━━━━━\n`;
-  msg += `_Tap dishes below to select what you ate\\!_`;
+  msg += `_Tap dishes below to select what you ate\\!_\n`;
+  msg += `_Every dish needs an owner before the split can be locked\\._`;
   return msg;
 }
 
@@ -395,7 +542,7 @@ function formatPayment(bill, date) {
 
 // --- KEYBOARDS (COMPRESSED DATA) ---
 
-function createInlineKeyboard(bill, userId) {
+function createInlineKeyboard(bill) {
   if (bill.phase === 'payment') {
     return {
       inline_keyboard: bill.participants
@@ -408,27 +555,29 @@ function createInlineKeyboard(bill, userId) {
     };
   }
 
-  // Selection Keyboard
+  // Selection Keyboard. NOTE: an inline message has ONE keyboard shared by
+  // every viewer, so buttons can't show per-user checkmarks - they show how
+  // many people claimed each dish instead. Per-person selections live in the
+  // message text. Buttons are numbered to match the dish list, so duplicate
+  // dish names stay distinguishable.
   const rows = [];
-  const currentParticipant = bill.participants?.find(p => p.telegramUserId === userId);
-  const selected = currentParticipant?.selectedDishIds || [];
+
+  const claimCount = (dishId) =>
+    bill.participants?.filter(p => p.selectedDishIds.includes(dishId)).length || 0;
+
+  const buttonFor = (dish, index) => {
+    const count = claimCount(dish.id);
+    return {
+      text: `${index + 1}. ${dish.name}${count > 0 ? ` (${count}👤)` : ''}`,
+      // ⚡ 's' = select, using INDEX instead of long ID
+      callback_data: `s:${bill.id}:${index}`,
+    };
+  };
 
   for (let i = 0; i < bill.dishes.length; i += 2) {
-    const row = [];
-    const d1 = bill.dishes[i];
-    row.push({
-      text: `${selected.includes(d1.id) ? '✓ ' : ''}${d1.name}`,
-      // ⚡ 's' = select, using INDEX 'i' instead of long ID
-      callback_data: `s:${bill.id}:${i}`,
-    });
+    const row = [buttonFor(bill.dishes[i], i)];
     if (bill.dishes[i + 1]) {
-      const d2 = bill.dishes[i + 1];
-      const i2 = i + 1;
-      row.push({
-        text: `${selected.includes(d2.id) ? '✓ ' : ''}${d2.name}`,
-        // ⚡ 's' = select, using INDEX 'i2'
-        callback_data: `s:${bill.id}:${i2}`,
-      });
+      row.push(buttonFor(bill.dishes[i + 1], i + 1));
     }
     rows.push(row);
   }

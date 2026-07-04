@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, increment, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, increment, Timestamp } from 'firebase/firestore';
 import { validateBill } from '@/utils/validation';
 
 // Simple in-memory rate limiter (use Redis in production for multi-instance)
@@ -114,22 +114,18 @@ export async function POST(request: NextRequest) {
     const billRef = doc(db, 'bills', billData.id);
     await setDoc(billRef, billToSave);
 
-    // Increment total bills counter (fire and forget - don't wait)
-    updateDoc(doc(db, 'stats', 'counters'), {
-      totalBills: increment(1),
-      lastUpdated: serverTimestamp()
-    }).catch(async (error) => {
-      // If counter doesn't exist, create it
-      if (error.code === 'not-found') {
-        await setDoc(doc(db, 'stats', 'counters'), {
-          totalBills: 1,
-          lastUpdated: serverTimestamp()
-        }).catch(() => {
-          // Silently fail - counter is not critical
-          console.warn('Failed to create counter document');
-        });
-      }
-    });
+    // Increment total bills counter. Must be awaited: on serverless the
+    // function is frozen once the response is sent, so unawaited writes are lost.
+    // merge:true creates the document if it doesn't exist yet.
+    try {
+      await setDoc(doc(db, 'stats', 'counters'), {
+        totalBills: increment(1),
+        lastUpdated: serverTimestamp()
+      }, { merge: true });
+    } catch (counterError) {
+      // Counter is not critical - don't fail the bill creation
+      console.warn('Failed to increment bill counter:', counterError);
+    }
 
     console.log('Bill created successfully:', billData.id, 'from IP:', ip);
 

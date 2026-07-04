@@ -10,6 +10,7 @@ import { calculateBill, formatCurrency } from '@/utils/billCalculator';
 import { saveBillToFirebase } from '@/lib/billStorage';
 import { Bill } from '@/types/bill';
 import { Colors } from '@/constants/colors';
+import { TELEGRAM_CONFIG } from '@/config/telegram';
 
 export default function BillSummaryScreen() {
   const router = useRouter();
@@ -82,11 +83,15 @@ export default function BillSummaryScreen() {
 
   const handleCopyInlineCommand = () => {
     if (!billId) return;
-    const inlineCommand = `@MakanSplitterBot ${billId}`;
+    const inlineCommand = `@${TELEGRAM_CONFIG.BOT_USERNAME} ${billId}`;
     navigator.clipboard.writeText(inlineCommand);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const telegramDeepLink = billId
+    ? `https://t.me/${TELEGRAM_CONFIG.BOT_USERNAME}?start=${billId}`
+    : '';
 
   const handleCreateNew = () => {
     clearCurrentBill();
@@ -211,36 +216,27 @@ export default function BillSummaryScreen() {
                     1
                   </div>
                   <p className="text-sm" style={{ color: Colors.text }}>
-                    Open any Telegram chat (group or private)
+                    Tap the button below to open the bot in Telegram
                   </p>
                 </div>
+
+                <a
+                  href={telegramDeepLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-center px-4 py-3 rounded-lg text-sm font-semibold transition-all"
+                  style={{ backgroundColor: Colors.primary, color: 'white' }}
+                >
+                  ✈️ Open in Telegram
+                </a>
 
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: Colors.primary, color: Colors.white }}>
                     2
                   </div>
                   <p className="text-sm" style={{ color: Colors.text }}>
-                    Type this command in the message box:
+                    Tap <strong>&ldquo;📤 Share bill to a chat&rdquo;</strong> in the bot chat and pick your group
                   </p>
-                </div>
-
-                <div
-                  className="rounded-lg p-4 flex items-center justify-between gap-3"
-                  style={{ backgroundColor: Colors.backgroundTertiary }}
-                >
-                  <code className="text-sm font-mono flex-1 break-all" style={{ color: Colors.text }}>
-                    @MakanSplitterBot {billId}
-                  </code>
-                  <button
-                    onClick={handleCopyInlineCommand}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
-                    style={{
-                      backgroundColor: copied ? Colors.success : Colors.primary,
-                      color: 'white',
-                    }}
-                  >
-                    {copied ? '✓ Copied!' : 'Copy'}
-                  </button>
                 </div>
 
                 <div className="flex items-start gap-3">
@@ -248,7 +244,7 @@ export default function BillSummaryScreen() {
                     3
                   </div>
                   <p className="text-sm" style={{ color: Colors.text }}>
-                    Tap the bill that appears in the popup, then send it
+                    <strong>Tap the bill card that pops up</strong> above the message box to post it — don&apos;t press Enter
                   </p>
                 </div>
 
@@ -257,12 +253,39 @@ export default function BillSummaryScreen() {
                     4
                   </div>
                   <p className="text-sm" style={{ color: Colors.text }}>
-                    Everyone taps the dishes they ate, then the payer locks the bill to calculate the split!
+                    Everyone taps the dishes they ate, then you lock the bill to calculate the split!
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-lg p-4" style={{ backgroundColor: Colors.backgroundTertiary }}>
+              <details className="rounded-lg" style={{ backgroundColor: Colors.backgroundTertiary }}>
+                <summary className="p-4 text-xs font-semibold cursor-pointer" style={{ color: Colors.textSecondary }}>
+                  Prefer to type it manually?
+                </summary>
+                <div className="px-4 pb-4 space-y-3">
+                  <p className="text-xs" style={{ color: Colors.textSecondary }}>
+                    Paste this in any chat, <strong>wait for the bill card to pop up, and tap it</strong>.
+                    Pressing Enter just sends plain text — nobody will be able to select dishes.
+                  </p>
+                  <div className="rounded-lg p-3 flex items-center justify-between gap-3" style={{ backgroundColor: Colors.card }}>
+                    <code className="text-sm font-mono flex-1 break-all" style={{ color: Colors.text }}>
+                      @{TELEGRAM_CONFIG.BOT_USERNAME} {billId}
+                    </code>
+                    <button
+                      onClick={handleCopyInlineCommand}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
+                      style={{
+                        backgroundColor: copied ? Colors.success : Colors.primary,
+                        color: 'white',
+                      }}
+                    >
+                      {copied ? '✓ Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </details>
+
+              <div className="rounded-lg p-4 mt-4" style={{ backgroundColor: Colors.backgroundTertiary }}>
                 <p className="text-xs" style={{ color: Colors.textSecondary }}>
                   <strong>Tip:</strong> The bot works in any Telegram chat - no need to add it to your group!
                 </p>
