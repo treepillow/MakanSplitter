@@ -3,27 +3,33 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { nanoid } from 'nanoid';
-import { Button } from '@/components/Button';
 import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
-import { calculateBill, formatCurrency } from '@/utils/billCalculator';
+import { calculateBill } from '@/utils/billCalculator';
 import { saveBillToFirebase } from '@/lib/billStorage';
 import { Bill } from '@/types/bill';
-import { Colors } from '@/constants/colors';
 import { TELEGRAM_CONFIG } from '@/config/telegram';
+
+function StepMeter({ current }: { current: 1 | 2 | 3 }) {
+  return (
+    <div className="flex items-center gap-2" aria-label={`Step ${current} of 3`}>
+      {[1, 2, 3].map((step) => (
+        <span
+          key={step}
+          className={`h-[3px] w-10 ${step <= current ? 'bg-chop' : 'bg-rule-dash'}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function BillSummaryScreen() {
   const router = useRouter();
   const { currentBill, clearCurrentBill } = useBill();
-  const [opacity, setOpacity] = useState(0);
   const [copied, setCopied] = useState(false);
   const [billId, setBillId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
-
-  useEffect(() => {
-    setTimeout(() => setOpacity(1), 100);
-  }, []);
 
   useEffect(() => {
     if (!currentBill || !currentBill.dishes) {
@@ -45,10 +51,8 @@ export default function BillSummaryScreen() {
   const handleSaveBill = async () => {
     setSaving(true);
     try {
-      // Generate bill ID (cryptographically secure random ID)
       const newBillId = `bill_${nanoid()}`;
 
-      // Create full bill object
       const fullBill: Bill = {
         id: newBillId,
         restaurantName: currentBill.restaurantName || 'Restaurant',
@@ -68,14 +72,13 @@ export default function BillSummaryScreen() {
         updatedAt: new Date(),
       };
 
-      // Save to Firebase
       await saveBillToFirebase(fullBill);
 
       setBillId(newBillId);
-      setToast({ message: 'Bill saved successfully!', type: 'success' });
+      setToast({ message: 'Bill saved — ready to share', type: 'success' });
     } catch (error) {
       console.error('Error saving bill:', error);
-      setToast({ message: 'Failed to save bill. Please try again.', type: 'error' });
+      setToast({ message: 'Could not save the bill. Try again.', type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -99,227 +102,171 @@ export default function BillSummaryScreen() {
     window.location.href = '/create-bill';
   };
 
+  const billDate = new Date(currentBill.date || Date.now());
+
   return (
     <>
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
-    <div className="min-h-screen" style={{ backgroundColor: Colors.background }}>
-      <div
-        className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12 transition-opacity duration-600"
-        style={{ opacity }}
-      >
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4" style={{ color: Colors.text }}>
-            Bill Summary
-          </h1>
-          <div className="flex justify-center gap-2 mb-3 sm:mb-4">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-            <div className="w-6 sm:w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
+      <div className="min-h-screen py-12 px-5 sm:px-8">
+        <div className="max-w-lg mx-auto">
+          {/* Step header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <p className="mlabel">Step 3 / 3</p>
+              <StepMeter current={3} />
+            </div>
+            <h1 className="font-mono font-extrabold uppercase text-3xl tracking-tight text-ink mb-2">
+              Review &amp; share
+            </h1>
+            <p className="text-ink-soft">
+              Check the receipt, then send it to your group.
+            </p>
           </div>
-          <p className="text-sm font-medium mb-4" style={{ color: Colors.textSecondary }}>
-            Step 3 of 3: Preview & Share
-          </p>
-          <p className="text-sm max-w-md mx-auto" style={{ color: Colors.textMuted }}>
-            Review the bill breakdown, save it, and share in Telegram for everyone to select their dishes.
-          </p>
-        </div>
 
-        {/* Content */}
-        <div className="max-w-2xl mx-auto">
-          {/* Total Card */}
-          <div
-            className="rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 text-center border"
-            style={{
-              backgroundColor: Colors.card,
-              borderColor: Colors.primary,
-            }}
-          >
-            <p className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3" style={{ color: Colors.textSecondary }}>
-              TOTAL BILL
+          {/* The receipt */}
+          <div className="slip tear-b px-6 sm:px-8 pt-7 pb-7 mb-10">
+            <p className="font-mono font-bold text-sm text-center tracking-[0.18em] text-ink mb-1">
+              {(currentBill.restaurantName || 'MAKAN SESSION').toUpperCase()}
             </p>
-            <p className="text-3xl sm:text-5xl font-extrabold mb-4 sm:mb-6" style={{ color: Colors.primary }}>
-              {formatCurrency(calculation.total)}
+            <p className="font-mono text-[0.6875rem] text-center tracking-[0.12em] text-ink-soft mb-4">
+              {billDate
+                .toLocaleDateString('en-SG', { weekday: 'short', day: '2-digit', month: 'short' })
+                .toUpperCase()}{' '}
+              · PAID BY {currentBill.paidBy?.toUpperCase()}
             </p>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span style={{ color: Colors.textSecondary }}>Subtotal</span>
-                <span style={{ color: Colors.text }}>{formatCurrency(calculation.subtotal)}</span>
+
+            <hr className="rule-dash mb-3" />
+            <div className="space-y-1.5">
+              {currentBill.dishes.map((dish) => (
+                <div key={dish.id} className="leader-row font-mono text-sm text-ink">
+                  <span className="truncate">{dish.name}</span>
+                  <span className="leader" />
+                  <span className="tabnum">{dish.price.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+            <hr className="rule-dash my-3" />
+
+            <div className="space-y-1 font-mono text-xs text-ink-soft">
+              <div className="leader-row">
+                <span>SUBTOTAL</span>
+                <span className="leader" />
+                <span className="tabnum">{calculation.subtotal.toFixed(2)}</span>
               </div>
               {calculation.serviceCharge > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: Colors.textSecondary }}>
-                    Service ({currentBill.serviceChargePercentage}%)
-                  </span>
-                  <span style={{ color: Colors.text }}>{formatCurrency(calculation.serviceCharge)}</span>
+                <div className="leader-row">
+                  <span>SVC {currentBill.serviceChargePercentage}%</span>
+                  <span className="leader" />
+                  <span className="tabnum">{calculation.serviceCharge.toFixed(2)}</span>
                 </div>
               )}
               {calculation.gst > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: Colors.textSecondary }}>
-                    GST ({currentBill.gstPercentage}%)
-                  </span>
-                  <span style={{ color: Colors.text }}>{formatCurrency(calculation.gst)}</span>
+                <div className="leader-row">
+                  <span>GST {currentBill.gstPercentage}%</span>
+                  <span className="leader" />
+                  <span className="tabnum">{calculation.gst.toFixed(2)}</span>
                 </div>
               )}
             </div>
+            <div className="leader-row font-mono font-bold text-lg text-ink mt-2">
+              <span>TOTAL</span>
+              <span className="leader" />
+              <span className="tabnum">{calculation.total.toFixed(2)}</span>
+            </div>
           </div>
 
-          {/* Dishes List */}
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" style={{ color: Colors.text }}>
-            Dishes on Bill
-          </h2>
-          <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-            {currentBill.dishes.map((dish) => (
-              <div
-                key={dish.id}
-                className="rounded-xl p-5 border"
-                style={{
-                  backgroundColor: Colors.card,
-                  borderColor: Colors.border,
-                }}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold" style={{ color: Colors.text }}>
-                    {dish.name}
-                  </span>
-                  <span className="text-xl font-bold" style={{ color: Colors.primary }}>
-                    ${dish.price.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Telegram Instructions */}
+          {/* Share panel (after save) */}
           {billId && (
-            <div
-              className="rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 border"
-              style={{
-                backgroundColor: Colors.card,
-                borderColor: Colors.primary,
-              }}
-            >
-              <h3 className="text-xl font-bold mb-4" style={{ color: Colors.text }}>
-                Share in Telegram
-              </h3>
+            <div className="slip px-6 sm:px-8 py-7 mb-10">
+              <p className="mlabel mb-5">Share in Telegram</p>
 
-              <div className="space-y-4 mb-6">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: Colors.primary, color: Colors.white }}>
-                    1
-                  </div>
-                  <p className="text-sm" style={{ color: Colors.text }}>
-                    Tap the button below to open the bot in Telegram
-                  </p>
-                </div>
+              <ol className="space-y-4 mb-6">
+                <li className="flex gap-3 text-sm text-ink">
+                  <span className="font-mono text-xs font-semibold text-chop tabnum mt-0.5">01</span>
+                  <span>Open the bot with the button below.</span>
+                </li>
+                <li className="flex gap-3 text-sm text-ink">
+                  <span className="font-mono text-xs font-semibold text-chop tabnum mt-0.5">02</span>
+                  <span>
+                    Tap <strong>&ldquo;📤 Share bill to a chat&rdquo;</strong> and pick your group.
+                  </span>
+                </li>
+                <li className="flex gap-3 text-sm text-ink">
+                  <span className="font-mono text-xs font-semibold text-chop tabnum mt-0.5">03</span>
+                  <span>
+                    <strong>Tap the bill card that pops up</strong> above the message box —
+                    don&apos;t press Enter.
+                  </span>
+                </li>
+                <li className="flex gap-3 text-sm text-ink">
+                  <span className="font-mono text-xs font-semibold text-chop tabnum mt-0.5">04</span>
+                  <span>Everyone taps their dishes, then you lock the bill.</span>
+                </li>
+              </ol>
 
-                <a
-                  href={telegramDeepLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center px-4 py-3 rounded-lg text-sm font-semibold transition-all"
-                  style={{ backgroundColor: Colors.primary, color: 'white' }}
-                >
-                  ✈️ Open in Telegram
-                </a>
+              <a
+                href={telegramDeepLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ink btn-lg w-full mb-4"
+              >
+                Open in Telegram
+              </a>
 
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: Colors.primary, color: Colors.white }}>
-                    2
-                  </div>
-                  <p className="text-sm" style={{ color: Colors.text }}>
-                    Tap <strong>&ldquo;📤 Share bill to a chat&rdquo;</strong> in the bot chat and pick your group
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: Colors.primary, color: Colors.white }}>
-                    3
-                  </div>
-                  <p className="text-sm" style={{ color: Colors.text }}>
-                    <strong>Tap the bill card that pops up</strong> above the message box to post it — don&apos;t press Enter
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: Colors.primary, color: Colors.white }}>
-                    4
-                  </div>
-                  <p className="text-sm" style={{ color: Colors.text }}>
-                    Everyone taps the dishes they ate, then you lock the bill to calculate the split!
-                  </p>
-                </div>
-              </div>
-
-              <details className="rounded-lg" style={{ backgroundColor: Colors.backgroundTertiary }}>
-                <summary className="p-4 text-xs font-semibold cursor-pointer" style={{ color: Colors.textSecondary }}>
+              <details className="group">
+                <summary className="font-mono text-xs uppercase tracking-[0.12em] text-ink-soft cursor-pointer hover:text-ink">
                   Prefer to type it manually?
                 </summary>
-                <div className="px-4 pb-4 space-y-3">
-                  <p className="text-xs" style={{ color: Colors.textSecondary }}>
-                    Paste this in any chat, <strong>wait for the bill card to pop up, and tap it</strong>.
-                    Pressing Enter just sends plain text — nobody will be able to select dishes.
+                <div className="mt-3 space-y-3">
+                  <p className="text-xs text-ink-soft">
+                    Paste this in any chat, <strong>wait for the bill card to pop up, and tap
+                    it</strong>. Pressing Enter just sends plain text — nobody will be able to
+                    select dishes.
                   </p>
-                  <div className="rounded-lg p-3 flex items-center justify-between gap-3" style={{ backgroundColor: Colors.card }}>
-                    <code className="text-sm font-mono flex-1 break-all" style={{ color: Colors.text }}>
+                  <div className="flex items-center gap-2 border border-rule-dash rounded-sm bg-bright p-2">
+                    <code className="font-mono text-xs text-ink flex-1 break-all">
                       @{TELEGRAM_CONFIG.BOT_USERNAME} {billId}
                     </code>
                     <button
                       onClick={handleCopyInlineCommand}
-                      className="px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
-                      style={{
-                        backgroundColor: copied ? Colors.success : Colors.primary,
-                        color: 'white',
-                      }}
+                      className={`btn btn-sm shrink-0 ${copied ? 'btn-paid' : 'btn-ghost'}`}
                     >
-                      {copied ? '✓ Copied!' : 'Copy'}
+                      {copied ? 'Copied' : 'Copy'}
                     </button>
                   </div>
                 </div>
               </details>
 
-              <div className="rounded-lg p-4 mt-4" style={{ backgroundColor: Colors.backgroundTertiary }}>
-                <p className="text-xs" style={{ color: Colors.textSecondary }}>
-                  <strong>Tip:</strong> The bot works in any Telegram chat - no need to add it to your group!
-                </p>
-              </div>
+              <hr className="rule-dash my-4" />
+              <p className="text-xs text-ink-faint">
+                The bot works in any chat — no need to add it to your group.
+              </p>
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              title="Back"
-              variant="secondary"
-              onPress={() => router.back()}
-              className="w-full sm:flex-1"
-            />
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button onClick={() => router.back()} className="btn btn-ghost flex-1">
+              Back
+            </button>
             {!billId ? (
-              <Button
-                title={saving ? "Saving..." : "Save & Share"}
-                onPress={handleSaveBill}
-                className="w-full sm:flex-[2]"
+              <button
+                onClick={handleSaveBill}
                 disabled={saving}
-              />
+                className="btn btn-chop flex-[2]"
+              >
+                {saving ? 'Saving…' : 'Save & share'}
+              </button>
             ) : (
-              <Button
-                title="Create New Bill"
-                variant="success"
-                onPress={handleCreateNew}
-                className="w-full sm:flex-[2]"
-              />
+              <button onClick={handleCreateNew} className="btn btn-ink flex-[2]">
+                Create new bill
+              </button>
             )}
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 }

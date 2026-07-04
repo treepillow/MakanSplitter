@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Colors } from '../constants/colors';
+import React from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement> {
   label?: string;
@@ -29,63 +28,30 @@ export function Input({
   icon,
   ...rest
 }: InputProps) {
-  const [isFocused, setIsFocused] = useState(false);
   const InputElement = multiline ? 'textarea' : 'input';
+  const isNumeric = type === 'number';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (onChangeText) {
-      onChangeText(e.target.value);
-    }
-    if (onChange) {
-      onChange(e);
-    }
+    if (onChangeText) onChangeText(e.target.value);
+    if (onChange) onChange(e);
   };
 
   return (
-    <div className={`mb-4 ${className}`}>
-      {label && (
-        <label
-          className="block text-sm font-semibold mb-2"
-          style={{ color: isFocused ? Colors.primary : Colors.textSecondary }}
-        >
-          {label}
-        </label>
-      )}
-      <div
-        className="flex items-center rounded-lg border-2 transition-all"
-        style={{
-          backgroundColor: Colors.white,
-          borderColor: error ? Colors.error : (isFocused ? Colors.primary : Colors.border),
-        }}
-      >
-        {icon && (
-          <span className="text-xl ml-4">
-            {icon}
-          </span>
-        )}
-        <InputElement
-          className={`flex-1 px-4 py-3 text-base bg-transparent border-0 outline-none placeholder:opacity-50 ${
-            multiline ? 'min-h-[120px] align-top pt-3 resize-none' : ''
-          } ${icon ? 'pl-2' : ''}`}
-          style={{
-            color: Colors.text,
-          }}
-          value={value}
-          onChange={handleChange}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={placeholder}
-          type={!multiline ? type : undefined}
-          {...(rest as any)}
-        />
-      </div>
+    <div className={className}>
+      {label && <label className="mlabel block mb-2">{label}</label>}
+      <InputElement
+        className={`field ${isNumeric ? 'field-mono' : ''} ${error ? 'field-error' : ''} ${
+          multiline ? 'min-h-[120px] resize-none' : ''
+        }`}
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        type={!multiline ? type : undefined}
+        {...(rest as React.InputHTMLAttributes<HTMLInputElement> &
+          React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+      />
       {error && (
-        <p
-          className="text-sm font-medium mt-2 ml-1"
-          style={{ color: Colors.error }}
-        >
-          {error}
-        </p>
+        <p className="font-mono text-xs mt-2 text-chop">{error}</p>
       )}
     </div>
   );

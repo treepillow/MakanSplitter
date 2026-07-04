@@ -1,18 +1,23 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Azeret_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { BillProvider } from "@/context/BillContext";
 import { Navbar } from "@/components/Navbar";
-import { Colors } from "@/constants/colors";
 
-const inter = Inter({
+const azeret = Azeret_Mono({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-azeret",
+});
+
+const instrument = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-instrument",
 });
 
 export const metadata: Metadata = {
-  title: "MakanSplitter - Split bills effortlessly",
-  description: "Quick and simple bill splitting. No sign-up required. Generate your bill split message instantly.",
+  title: "MakanSplitter — Makan first, split later",
+  description:
+    "Scan the receipt, share one Telegram poll, and everyone pays for exactly what they ate. No sign-up, no app, free.",
 };
 
 export default function RootLayout({
@@ -21,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="w-full">
-      <body className={`${inter.variable} font-sans antialiased w-full`} style={{ backgroundColor: Colors.background }}>
+    <html lang="en">
+      <body className={`${azeret.variable} ${instrument.variable} font-sans antialiased`}>
         <BillProvider>
           <Navbar />
           {children}

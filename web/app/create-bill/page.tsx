@@ -2,13 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
 import { Input } from '@/components/Input';
-import { Button } from '@/components/Button';
 import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
-import { Colors } from '@/constants/colors';
 import { validatePaidBy, validatePercentage } from '@/utils/validation';
+
+function StepMeter({ current }: { current: 1 | 2 | 3 }) {
+  return (
+    <div className="flex items-center gap-2" aria-label={`Step ${current} of 3`}>
+      {[1, 2, 3].map((step) => (
+        <span
+          key={step}
+          className={`h-[3px] w-10 ${step <= current ? 'bg-chop' : 'bg-rule-dash'}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function CreateBillScreen() {
   const router = useRouter();
@@ -55,60 +65,45 @@ export default function CreateBillScreen() {
   return (
     <>
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
-      <div className="min-h-screen py-12 px-4 sm:px-6" style={{ backgroundColor: Colors.background }}>
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-6" style={{ color: Colors.text }}>
-              Create New Bill
-            </h1>
-
-            {/* Progress Indicators */}
-            <div className="flex justify-center gap-2 mb-4">
-              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: Colors.primary }} />
-              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: Colors.border }} />
-              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: Colors.border }} />
+      <div className="min-h-screen py-12 px-5 sm:px-8">
+        <div className="max-w-lg mx-auto">
+          {/* Step header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <p className="mlabel">Step 1 / 3</p>
+              <StepMeter current={1} />
             </div>
-
-            <p className="text-sm font-semibold mb-2" style={{ color: Colors.primary }}>
-              Step 1 of 3
-            </p>
-            <p className="text-sm" style={{ color: Colors.textSecondary }}>
-              Enter who paid and the tax percentages
+            <h1 className="font-mono font-extrabold uppercase text-3xl tracking-tight text-ink mb-2">
+              Open a tab
+            </h1>
+            <p className="text-ink-soft">
+              Who fronted the money, and what the restaurant adds on top.
             </p>
           </div>
 
-          {/* Form Card */}
-          <div className="rounded-2xl p-8 border mb-8" style={{ backgroundColor: Colors.card, borderColor: Colors.border }}>
+          {/* Form slip */}
+          <div className="slip tear-b px-6 sm:px-8 py-8 mb-12">
             <div className="space-y-6">
-              {/* Paid By */}
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: Colors.text }}>
-                  Who Paid? *
-                </label>
                 <Input
+                  label="Who paid?"
                   value={paidBy}
                   onChange={(e) => setPaidBy(e.target.value)}
-                  placeholder="Enter name (e.g., John)"
+                  placeholder="e.g. Aaron"
                   maxLength={50}
                 />
-                <p className="text-xs mt-1" style={{ color: Colors.textMuted }}>
-                  This person will receive payments from others
+                <p className="text-xs text-ink-faint mt-2">
+                  This person collects the money after the split.
                 </p>
               </div>
 
-              {/* GST */}
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: Colors.text }}>
-                  GST %
-                </label>
+              <hr className="rule-dash" />
+
+              <div className="grid grid-cols-2 gap-4">
                 <Input
+                  label="GST %"
                   type="number"
                   value={gstPercentage}
                   onChange={(e) => setGstPercentage(e.target.value)}
@@ -117,14 +112,8 @@ export default function CreateBillScreen() {
                   max="100"
                   step="0.1"
                 />
-              </div>
-
-              {/* Service Charge */}
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: Colors.text }}>
-                  Service Charge %
-                </label>
                 <Input
+                  label="Service %"
                   type="number"
                   value={serviceChargePercentage}
                   onChange={(e) => setServiceChargePercentage(e.target.value)}
@@ -134,16 +123,12 @@ export default function CreateBillScreen() {
                   step="0.1"
                 />
               </div>
+
+              <button onClick={handleContinue} className="btn btn-ink btn-lg w-full">
+                Next: add dishes
+              </button>
             </div>
           </div>
-
-          {/* Continue Button */}
-          <Button onClick={handleContinue} className="w-full">
-            <span className="flex items-center justify-center gap-2">
-              Continue to Add Dishes
-              <ArrowRight size={18} />
-            </span>
-          </Button>
         </div>
       </div>
     </>

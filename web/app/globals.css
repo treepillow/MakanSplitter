@@ -1,576 +1,310 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   MakanSplit — "Thermal Receipt" design system
+   Paper slips, dashed tear-lines, dot leaders, mono data, one red chop.
+--------------------------------------------------------------------------- */
+
 :root {
-  /* Cyber Dark Theme */
-  --background: #0a0a0f;
-  --foreground: #e0e0ff;
-  --primary: #00f0ff;
-  --primary-glow: rgba(0, 240, 255, 0);
-  --secondary: #b400ff;
-  --secondary-glow: rgba(180, 0, 255, 0);
-  --card: rgba(20, 20, 30, 0.6);
-  --card-border: rgba(0, 240, 255, 0.2);
-  --border: #1a1a2e;
-  --success: #00ff94;
-  --error: #ff0080;
-  --warning: #ffaa00;
-  --text-muted: #8888aa;
-  --glass-bg: rgba(15, 15, 25, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --paper: #FBF9F4;       /* slip surface */
+  --paper-deep: #F0EDE5;  /* page background */
+  --bright: #FFFEFB;      /* input wells */
+  --ink: #29242E;         /* thermal ink, purple-black */
+  --ink-soft: #6F6A75;    /* faded ink */
+  --ink-faint: #A19BA6;   /* placeholder ink */
+  --rule: #E3DED3;        /* hairlines on paper */
+  --rule-dash: #C9C3B6;   /* dashed tear lines */
+  --chop: #C63B2A;        /* rubber stamp red */
+  --chop-deep: #A52F21;
+  --paid: #23684B;        /* stamped green, paid/success */
+  --paid-soft: #E3EDE4;
+  --warn: #96601A;
+  --warn-soft: #F5EBD8;
+  --err-soft: #F7E5E1;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-azeret), ui-monospace, "SF Mono", monospace;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-bright: var(--bright);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-dash: var(--rule-dash);
+  --color-chop: var(--chop);
+  --color-chop-deep: var(--chop-deep);
+  --color-paid: var(--paid);
+  --color-paid-soft: var(--paid-soft);
 }
 
 html,
 body {
-  width: 100%;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-family: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   min-height: 100vh;
-  overflow-x: hidden;
-  /* Dot Grid Background */
-  background-image:
-    radial-gradient(circle, rgba(0, 240, 255, 0.1) 1px, transparent 1px),
-    radial-gradient(circle, rgba(180, 0, 255, 0.08) 1px, transparent 1px);
-  background-size: 30px 30px, 60px 60px;
-  background-position: 0 0, 15px 15px;
 }
 
-/* Animated Gradient Background Overlay */
-body::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(ellipse at top, rgba(0, 240, 255, 0.05) 0%, transparent 50%),
-              radial-gradient(ellipse at bottom right, rgba(180, 0, 255, 0.05) 0%, transparent 50%);
-  animation: gradient-shift 15s ease infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes gradient-shift {
-  0%, 100% {
-    transform: translate(0%, 0%) rotate(0deg);
-  }
-  33% {
-    transform: translate(5%, -5%) rotate(3deg);
-  }
-  66% {
-    transform: translate(-5%, 5%) rotate(-3deg);
-  }
-}
-
-/* Glassmorphism Utilities */
-.glass {
-  background: var(--glass-bg) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid var(--glass-border) !important;
-}
-
-.glass-strong {
-  background: rgba(15, 15, 25, 0.85) !important;
-  backdrop-filter: blur(30px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-}
-
-/* Glow Effects */
-.glow-cyan {
-  box-shadow:
-    0 0 20px var(--primary-glow),
-    0 0 40px var(--primary-glow),
-    inset 0 0 10px var(--primary-glow) !important;
-}
-
-.glow-purple {
-  box-shadow:
-    0 0 20px var(--secondary-glow),
-    0 0 40px var(--secondary-glow),
-    inset 0 0 10px var(--secondary-glow) !important;
-}
-
-.glow-border-cyan {
-  border: 1px solid var(--primary) !important;
-  box-shadow:
-    0 0 15px var(--primary-glow),
-    inset 0 0 5px var(--primary-glow) !important;
-}
-
-.glow-border-purple {
-  border: 1px solid var(--secondary) !important;
-  box-shadow:
-    0 0 15px var(--secondary-glow),
-    inset 0 0 5px var(--secondary-glow) !important;
-}
-
-/* Hover Glow Animation */
-.hover-glow-cyan:hover {
-  border-color: var(--primary) !important;
-  box-shadow:
-    0 0 25px var(--primary-glow),
-    0 0 50px var(--primary-glow),
-    inset 0 0 15px var(--primary-glow) !important;
-  transition: all 0.3s ease !important;
-}
-
-/* Smooth Transitions */
-.transition-all {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.transition-smooth {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--primary), var(--secondary));
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--secondary), var(--primary));
-}
-
-/* Selection Styling */
 ::selection {
-  background: var(--primary-glow);
-  color: var(--foreground);
+  background: var(--ink);
+  color: var(--paper);
 }
 
-/* Ensure containers are properly centered */
-.mx-auto {
-  margin-left: auto !important;
-  margin-right: auto !important;
+:focus-visible {
+  outline: 2px solid var(--chop);
+  outline-offset: 2px;
 }
 
-.max-w-6xl {
-  max-width: 72rem !important;
-}
+/* --- Paper slips ------------------------------------------------------- */
 
-.max-w-4xl {
-  max-width: 56rem !important;
-}
-
-.max-w-2xl {
-  max-width: 42rem !important;
-}
-
-/* Additional utility classes */
-.gap-2 {
-  gap: 0.5rem !important;
-}
-
-.px-4 {
-  padding-left: 1rem !important;
-  padding-right: 1rem !important;
-}
-
-.px-5 {
-  padding-left: 1.25rem !important;
-  padding-right: 1.25rem !important;
-}
-
-.px-6 {
-  padding-left: 1.5rem !important;
-  padding-right: 1.5rem !important;
-}
-
-.px-10 {
-  padding-left: 2.5rem !important;
-  padding-right: 2.5rem !important;
-}
-
-.py-2 {
-  padding-top: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
-}
-
-.py-2\.5 {
-  padding-top: 0.625rem !important;
-  padding-bottom: 0.625rem !important;
-}
-
-.py-4 {
-  padding-top: 1rem !important;
-  padding-bottom: 1rem !important;
-}
-
-.rounded-lg {
-  border-radius: 0.5rem !important;
-}
-
-.rounded-xl {
-  border-radius: 0.75rem !important;
-}
-
-.w-px {
-  width: 1px !important;
-}
-
-.h-6 {
-  height: 1.5rem !important;
-}
-
-.mx-2 {
-  margin-left: 0.5rem !important;
-  margin-right: 0.5rem !important;
-}
-
-.mb-12 {
-  margin-bottom: 3rem !important;
-}
-
-.shadow-md {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2) !important;
-}
-
-.shadow-lg {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3) !important;
-}
-
-.hover\:shadow-2xl:hover {
+.slip {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule);
   box-shadow:
-    0 25px 50px -12px rgba(0, 240, 255, 0.3),
-    0 0 40px rgba(0, 240, 255, 0.2) !important;
+    0 1px 2px rgba(41, 36, 46, 0.05),
+    0 12px 28px -18px rgba(41, 36, 46, 0.18);
 }
 
-.hover\:scale-105:hover {
-  transform: scale(1.05) !important;
+/* Torn bottom edge: triangle strip in paper color over the page bg */
+.tear-b {
+  border-bottom: none;
+}
+.tear-b::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -9px;
+  height: 9px;
+  background:
+    linear-gradient(-45deg, transparent 66%, var(--paper) 67%),
+    linear-gradient(45deg, transparent 66%, var(--paper) 67%);
+  background-size: 14px 9px;
+  background-position: left bottom;
+  background-repeat: repeat-x;
 }
 
-.text-7xl {
-  font-size: 4.5rem !important;
-  line-height: 1 !important;
+.rule-dash {
+  border: none;
+  border-top: 1px dashed var(--rule-dash);
 }
 
-.text-2xl {
-  font-size: 1.5rem !important;
-  line-height: 2rem !important;
+/* Dot leaders between an item name and its price */
+.leader-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  min-width: 0;
+}
+.leader {
+  flex: 1 1 auto;
+  min-width: 16px;
+  border-bottom: 2px dotted var(--rule-dash);
+  transform: translateY(-0.28em);
 }
 
-.text-xl {
-  font-size: 1.25rem !important;
-  line-height: 1.75rem !important;
+/* --- Labels & wordmark -------------------------------------------------- */
+
+.mlabel {
+  font-family: var(--font-azeret), monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
-.mb-16 {
-  margin-bottom: 4rem !important;
+.starline {
+  font-family: var(--font-azeret), monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--chop);
 }
 
-.mt-20 {
-  margin-top: 5rem !important;
+.tabnum {
+  font-family: var(--font-azeret), monospace;
+  font-variant-numeric: tabular-nums;
 }
 
-.pt-12 {
-  padding-top: 3rem !important;
+/* --- Rubber chop stamp --------------------------------------------------- */
+
+.chop-stamp {
+  display: inline-block;
+  padding: 0.3em 0.75em;
+  border: 3px double var(--chop);
+  border-radius: 3px;
+  color: var(--chop);
+  font-family: var(--font-azeret), monospace;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+  opacity: 0.85;
+  mix-blend-mode: multiply;
 }
 
-.px-12 {
-  padding-left: 3rem !important;
-  padding-right: 3rem !important;
+/* --- Thermal printer (hero) ---------------------------------------------- */
+
+.print-frame {
+  overflow: hidden;
+  padding-bottom: 12px; /* room for the torn edge */
 }
 
-.py-5 {
-  padding-top: 1.25rem !important;
-  padding-bottom: 1.25rem !important;
+.print-slot {
+  position: relative;
+  z-index: 2;
+  height: 16px;
+  background: var(--ink);
+  border-radius: 8px;
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.45);
 }
 
-.inline-block {
-  display: inline-block !important;
+.receipt-print {
+  animation: print 2s steps(22, end) 0.35s both;
 }
 
-.flex {
-  display: flex !important;
-}
-
-.items-center {
-  align-items: center !important;
-}
-
-.justify-center {
-  justify-content: center !important;
-}
-
-.border-t {
-  border-top-width: 1px !important;
-}
-
-.w-full {
-  width: 100% !important;
-}
-
-.w-12 {
-  width: 3rem !important;
-}
-
-.w-3 {
-  width: 0.75rem !important;
-}
-
-.w-32 {
-  width: 8rem !important;
-}
-
-.h-3 {
-  height: 0.75rem !important;
-}
-
-.h-10 {
-  height: 2.5rem !important;
-}
-
-.h-32 {
-  height: 8rem !important;
-}
-
-.gap-3 {
-  gap: 0.75rem !important;
-}
-
-.gap-4 {
-  gap: 1rem !important;
-}
-
-.mb-6 {
-  margin-bottom: 1.5rem !important;
-}
-
-.mb-8 {
-  margin-bottom: 2rem !important;
-}
-
-.mb-10 {
-  margin-bottom: 2.5rem !important;
-}
-
-.mb-16 {
-  margin-bottom: 4rem !important;
-}
-
-.mt-6 {
-  margin-top: 1.5rem !important;
-}
-
-.mt-10 {
-  margin-top: 2.5rem !important;
-}
-
-.mr-4 {
-  margin-right: 1rem !important;
-}
-
-.p-5 {
-  padding: 1.25rem !important;
-}
-
-.p-6 {
-  padding: 1.5rem !important;
-}
-
-.p-8 {
-  padding: 2rem !important;
-}
-
-.p-10 {
-  padding: 2.5rem !important;
-}
-
-.py-16 {
-  padding-top: 4rem !important;
-  padding-bottom: 4rem !important;
-}
-
-.py-20 {
-  padding-top: 5rem !important;
-  padding-bottom: 5rem !important;
-}
-
-.px-4 {
-  padding-left: 1rem !important;
-  padding-right: 1rem !important;
-}
-
-.rounded-2xl {
-  border-radius: 1rem !important;
-}
-
-.rounded-3xl {
-  border-radius: 1.5rem !important;
-}
-
-.rounded-full {
-  border-radius: 9999px !important;
-}
-
-.text-base {
-  font-size: 1rem !important;
-  line-height: 1.5rem !important;
-}
-
-.text-lg {
-  font-size: 1.125rem !important;
-  line-height: 1.75rem !important;
-}
-
-.text-3xl {
-  font-size: 1.875rem !important;
-  line-height: 2.25rem !important;
-}
-
-.text-5xl {
-  font-size: 3rem !important;
-  line-height: 1 !important;
-}
-
-.text-6xl {
-  font-size: 3.75rem !important;
-  line-height: 1 !important;
-}
-
-.leading-6 {
-  line-height: 1.5rem !important;
-}
-
-.leading-7 {
-  line-height: 1.75rem !important;
-}
-
-.space-y-4 > * + * {
-  margin-top: 1rem !important;
-}
-
-.space-y-6 > * + * {
-  margin-top: 1.5rem !important;
-}
-
-.min-w-\[48px\] {
-  min-width: 48px !important;
-}
-
-.max-w-xl {
-  max-width: 36rem !important;
-}
-
-.max-w-md {
-  max-width: 28rem !important;
-}
-
-.max-w-3xl {
-  max-width: 48rem !important;
-}
-
-.px-8 {
-  padding-left: 2rem !important;
-  padding-right: 2rem !important;
-}
-
-.w-6 {
-  width: 1.5rem !important;
-}
-
-.font-bold {
-  font-weight: 700 !important;
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite !important;
-}
-
-@keyframes spin {
+@keyframes print {
   from {
-    transform: rotate(0deg);
+    transform: translateY(-97%);
   }
   to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -20px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out !important;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out !important;
+/* --- Buttons -------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-family: var(--font-azeret), monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
+.btn-ink {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.btn-ink:hover:not(:disabled) {
+  background: #3b3545;
+  border-color: #3b3545;
+}
+
+.btn-chop {
+  background: var(--chop);
+  color: #fdf6f0;
+  border-color: var(--chop);
+}
+.btn-chop:hover:not(:disabled) {
+  background: var(--chop-deep);
+  border-color: var(--chop-deep);
+}
+
+.btn-paid {
+  background: var(--paid);
+  color: #f0f6f0;
+  border-color: var(--paid);
+}
+.btn-paid:hover:not(:disabled) {
+  background: #1b543c;
+  border-color: #1b543c;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule-dash);
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+.btn-text {
+  background: transparent;
+  color: var(--chop);
+  border-color: transparent;
+  padding: 0.8rem 0.6rem;
+}
+.btn-text:hover:not(:disabled) {
+  color: var(--chop-deep);
+}
+
+.btn-lg {
+  padding: 1rem 1.75rem;
+  font-size: 0.875rem;
+}
+.btn-sm {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.75rem;
+}
+
+/* --- Form fields ----------------------------------------------------------- */
+
+.field {
+  width: 100%;
+  background: var(--bright);
+  border: 1px solid var(--rule-dash);
+  border-radius: 4px;
+  padding: 0.75rem 0.9rem;
+  font-size: 1rem;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field::placeholder {
+  color: var(--ink-faint);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(41, 36, 46, 0.08);
+}
+.field-mono {
+  font-family: var(--font-azeret), monospace;
+  font-variant-numeric: tabular-nums;
+}
+.field-error {
+  border-color: var(--chop);
+}
+
+/* --- Motion discipline ------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .receipt-print {
+    animation: none;
   }
-  50% {
-    transform: translateY(-10px);
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite !important;
-}
-
-/* Cyber Grid Lines */
-.cyber-grid {
-  position: relative;
-}
-
-.cyber-grid::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
-  pointer-events: none;
 }

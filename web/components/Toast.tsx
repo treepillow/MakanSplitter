@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Colors } from '../constants/colors';
 
 interface ToastProps {
   message: string;
@@ -11,123 +10,46 @@ interface ToastProps {
   duration?: number;
 }
 
+const TYPE_STYLES: Record<string, { accent: string; mark: string }> = {
+  success: { accent: 'var(--paid)', mark: 'OK' },
+  error: { accent: 'var(--chop)', mark: '!!' },
+  warning: { accent: 'var(--warn)', mark: '!' },
+  info: { accent: 'var(--ink)', mark: 'i' },
+};
+
 export function Toast({ message, type = 'info', onClose, duration = 3000 }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
-  const getStyles = () => {
-    switch (type) {
-      case 'success':
-        return {
-          backgroundColor: Colors.success,
-          borderColor: Colors.successLight,
-          boxShadow: Colors.shadowMd,
-        };
-      case 'error':
-        return {
-          backgroundColor: Colors.error,
-          borderColor: Colors.errorLight,
-          boxShadow: Colors.shadowMd,
-        };
-      case 'warning':
-        return {
-          backgroundColor: Colors.warning,
-          borderColor: Colors.warningLight,
-          boxShadow: Colors.shadowMd,
-        };
-      default:
-        return {
-          backgroundColor: Colors.primary,
-          borderColor: Colors.primary,
-          boxShadow: Colors.shadowMd,
-        };
-    }
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return '✓';
-      case 'error':
-        return '✕';
-      case 'warning':
-        return '!';
-      default:
-        return 'i';
-    }
-  };
+  const { accent, mark } = TYPE_STYLES[type] ?? TYPE_STYLES.info;
 
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed top-6 right-6 z-50 px-8 py-5 rounded-2xl flex items-center gap-4 max-w-md border-2 overflow-hidden"
-        style={getStyles()}
-        initial={{ opacity: 0, x: 100, scale: 0.8 }}
-        animate={{ opacity: 1, x: 0, scale: 1 }}
-        exit={{ opacity: 0, x: 100, scale: 0.8 }}
-        transition={{
-          type: 'spring',
-          stiffness: 300,
-          damping: 20
-        }}
+        role="status"
+        className="slip fixed top-5 right-5 left-5 sm:left-auto z-50 flex items-center gap-3 px-4 py-3 sm:max-w-sm"
+        style={{ borderLeft: `4px solid ${accent}` }}
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -16 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
       >
-        {/* Cyber scan line effect */}
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 pointer-events-none"
-          initial={{ x: '-100%' }}
-          animate={{ x: '200%' }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            repeatDelay: 1,
-            ease: 'linear'
-          }}
-        />
-
-        <motion.span
-          className="text-2xl font-bold z-10"
-          style={{ color: type === 'success' || type === 'warning' ? Colors.black : Colors.white }}
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{
-            type: 'spring',
-            stiffness: 400,
-            delay: 0.1
-          }}
+        <span
+          className="font-mono font-bold text-xs px-1.5 py-0.5 rounded-sm shrink-0"
+          style={{ color: accent, border: `2px solid ${accent}` }}
         >
-          {getIcon()}
-        </motion.span>
-
-        <motion.p
-          className="text-lg font-semibold flex-1 z-10"
-          style={{ color: type === 'success' || type === 'warning' ? Colors.black : Colors.white }}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          {message}
-        </motion.p>
-
-        <motion.button
+          {mark}
+        </span>
+        <p className="text-sm font-medium text-ink flex-1">{message}</p>
+        <button
           onClick={onClose}
-          className="w-8 h-8 rounded-full flex items-center justify-center transition-all z-10"
-          style={{
-            backgroundColor: type === 'success' || type === 'warning'
-              ? 'rgba(0, 0, 0, 0.15)'
-              : 'rgba(255, 255, 255, 0.15)'
-          }}
-          whileHover={{ scale: 1.1, backgroundColor: type === 'success' || type === 'warning' ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.25)' }}
-          whileTap={{ scale: 0.9 }}
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2 }}
+          aria-label="Dismiss"
+          className="font-mono text-ink-soft hover:text-ink text-sm shrink-0"
         >
-          <span className="text-lg font-bold" style={{ color: type === 'success' || type === 'warning' ? Colors.black : Colors.white }}>
-            ✕
-          </span>
-        </motion.button>
+          ✕
+        </button>
       </motion.div>
     </AnimatePresence>
   );

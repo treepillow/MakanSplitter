@@ -3,12 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/Input';
-import { Button } from '@/components/Button';
 import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
 import { Dish } from '@/types/bill';
-import { Colors } from '@/constants/colors';
 import { validateDishName, validatePrice } from '@/utils/validation';
+
+function StepMeter({ current }: { current: 1 | 2 | 3 }) {
+  return (
+    <div className="flex items-center gap-2" aria-label={`Step ${current} of 3`}>
+      {[1, 2, 3].map((step) => (
+        <span
+          key={step}
+          className={`h-[3px] w-10 ${step <= current ? 'bg-chop' : 'bg-rule-dash'}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function AddDishesScreen() {
   const router = useRouter();
@@ -16,12 +27,7 @@ export default function AddDishesScreen() {
   const [dishes, setDishes] = useState<Dish[]>(currentBill?.dishes || []);
   const [dishName, setDishName] = useState('');
   const [dishPrice, setDishPrice] = useState('');
-  const [opacity, setOpacity] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
-
-  useEffect(() => {
-    setTimeout(() => setOpacity(1), 100);
-  }, []);
 
   useEffect(() => {
     if (!currentBill) {
@@ -33,18 +39,23 @@ export default function AddDishesScreen() {
     return null;
   }
 
+  const gstPct = currentBill.gstPercentage || 0;
+  const svcPct = currentBill.serviceChargePercentage || 0;
+  const subtotal = dishes.reduce((sum, dish) => sum + dish.price, 0);
+  const svcAmount = subtotal * (svcPct / 100);
+  const gstAmount = (subtotal + svcAmount) * (gstPct / 100);
+  const total = subtotal + svcAmount + gstAmount;
+
   const handleAddDish = () => {
     const trimmedName = dishName.trim();
     const price = parseFloat(dishPrice);
 
-    // Validate dish name
     const nameValidation = validateDishName(trimmedName);
     if (!nameValidation.valid) {
       setToast({ message: nameValidation.error!, type: 'error' });
       return;
     }
 
-    // Validate price
     const priceValidation = validatePrice(price);
     if (!priceValidation.valid) {
       setToast({ message: priceValidation.error!, type: 'error' });
@@ -61,7 +72,10 @@ export default function AddDishesScreen() {
     setDishes([...dishes, newDish]);
     setDishName('');
     setDishPrice('');
-    setToast({ message: `${trimmedName} added successfully!`, type: 'success' });
+  };
+
+  const handlePriceKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleAddDish();
   };
 
   const handleRemoveDish = (dishId: string) => {
@@ -70,7 +84,7 @@ export default function AddDishesScreen() {
 
   const handleContinue = () => {
     if (dishes.length === 0) {
-      setToast({ message: 'Please add at least one dish', type: 'error' });
+      setToast({ message: 'Add at least one dish to continue', type: 'error' });
       return;
     }
 
@@ -85,134 +99,129 @@ export default function AddDishesScreen() {
   return (
     <>
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
-      <div className="h-screen overflow-hidden" style={{ backgroundColor: Colors.background }}>
-      <div
-        className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-8 h-full transition-opacity duration-600 flex flex-col"
-        style={{ opacity }}
-      >
-        {/* Header */}
-        <div className="text-center mb-6 sm:mb-10">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6" style={{ color: Colors.text }}>
-            Add Dishes
-          </h1>
-          <div className="flex justify-center gap-2 mb-3 sm:mb-4">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
-            <div className="w-6 sm:w-8 h-2 rounded-full" style={{ backgroundColor: Colors.primary }} />
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: Colors.border }} />
+      <div className="min-h-screen py-12 px-5 sm:px-8">
+        <div className="max-w-lg mx-auto">
+          {/* Step header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <p className="mlabel">Step 2 / 3</p>
+              <StepMeter current={2} />
+            </div>
+            <h1 className="font-mono font-extrabold uppercase text-3xl tracking-tight text-ink mb-2">
+              Add dishes
+            </h1>
+            <p className="text-ink-soft">
+              Every line on the bill. Your friends pick theirs in Telegram.
+            </p>
           </div>
-          <p className="text-sm font-medium mb-4" style={{ color: Colors.textSecondary }}>
-            Step 2 of 3: What Did You Order?
-          </p>
-          <p className="text-sm max-w-md mx-auto" style={{ color: Colors.textMuted }}>
-            Add all dishes from the bill with their prices. People will choose what they ate in Telegram.
-          </p>
-        </div>
 
-        {/* Content */}
-        <div className="max-w-2xl mx-auto flex-1 flex flex-col min-h-0">
-          {/* Input Section */}
-          <div
-            className="rounded-2xl p-6 sm:p-10 mb-6 sm:mb-8 border"
-            style={{
-              backgroundColor: Colors.card,
-              borderColor: Colors.border,
-            }}
-          >
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
+          {/* Entry slip */}
+          <div className="slip px-6 sm:px-8 py-6 mb-8">
+            <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr] gap-3 mb-4">
               <Input
-                label="Dish Name"
+                label="Dish"
                 value={dishName}
                 onChangeText={setDishName}
                 placeholder="e.g. Xiao Long Bao"
-                className="w-full sm:flex-[2] mb-0"
               />
               <Input
-                label="Price ($)"
+                label="Price $"
                 value={dishPrice}
                 onChangeText={setDishPrice}
                 placeholder="0.00"
                 type="number"
-                className="w-full sm:flex-1 mb-0"
+                min="0"
+                step="0.01"
+                onKeyDown={handlePriceKeyDown}
+                className="w-28 sm:w-auto"
               />
             </div>
-            <div className="flex justify-end">
-              <Button
-                title="+ Add Dish"
-                onPress={handleAddDish}
-              />
-            </div>
+            <button onClick={handleAddDish} className="btn btn-ghost w-full">
+              + Add dish
+            </button>
           </div>
 
-          {/* List */}
-          <h2 className="text-xl font-bold mb-6 flex items-center gap-2" style={{ color: Colors.text }}>
-            Dishes
-            <span className="text-base px-2 py-1 rounded-lg" style={{ backgroundColor: Colors.primary, color: Colors.white }}>
-              {dishes.length}
-            </span>
-          </h2>
-
-          {dishes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <p className="text-base text-center" style={{ color: Colors.textSecondary }}>
-                No dishes added yet
+          {/* Live receipt */}
+          <div className="slip tear-b px-6 sm:px-8 pt-6 pb-7 mb-12">
+            <div className="flex items-baseline justify-between mb-4">
+              <p className="mlabel">The bill so far</p>
+              <p className="font-mono text-xs text-ink-soft tabnum">
+                {dishes.length} {dishes.length === 1 ? 'ITEM' : 'ITEMS'}
               </p>
             </div>
-          ) : (
-            <div className="space-y-4 mb-8 flex-1 overflow-y-auto min-h-0">
-              {dishes.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-xl p-6 border"
-                  style={{
-                    backgroundColor: Colors.card,
-                    borderColor: Colors.border,
-                  }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-base font-semibold mb-2" style={{ color: Colors.text }}>
-                        {item.name}
-                      </p>
-                      <p className="text-lg font-bold" style={{ color: Colors.accent }}>
-                        ${item.price.toFixed(2)}
-                      </p>
+
+            {dishes.length === 0 ? (
+              <p className="font-mono text-sm text-ink-faint text-center py-8">
+                — NO ITEMS YET —
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {dishes.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 group">
+                    <div className="leader-row font-mono text-sm text-ink flex-1 min-w-0">
+                      <span className="truncate">{item.name}</span>
+                      <span className="leader" />
+                      <span className="tabnum">{item.price.toFixed(2)}</span>
                     </div>
                     <button
                       onClick={() => handleRemoveDish(item.id)}
-                      className="p-1"
+                      aria-label={`Remove ${item.name}`}
+                      className="font-mono text-ink-faint hover:text-chop text-sm px-1 transition-colors"
                     >
-                      <span className="text-xl" style={{ color: Colors.error }}>✕</span>
+                      ✕
                     </button>
                   </div>
+                ))}
+              </div>
+            )}
+
+            <hr className="rule-dash my-4" />
+
+            <div className="space-y-1 font-mono text-xs text-ink-soft">
+              <div className="leader-row">
+                <span>SUBTOTAL</span>
+                <span className="leader" />
+                <span className="tabnum">{subtotal.toFixed(2)}</span>
+              </div>
+              {svcPct > 0 && (
+                <div className="leader-row">
+                  <span>SVC {svcPct}%</span>
+                  <span className="leader" />
+                  <span className="tabnum">{svcAmount.toFixed(2)}</span>
                 </div>
-              ))}
+              )}
+              {gstPct > 0 && (
+                <div className="leader-row">
+                  <span>GST {gstPct}%</span>
+                  <span className="leader" />
+                  <span className="tabnum">{gstAmount.toFixed(2)}</span>
+                </div>
+              )}
             </div>
-          )}
-          {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Button
-              title="Back"
-              variant="secondary"
-              onPress={() => router.back()}
-              className="w-full sm:flex-1"
-            />
-            <Button
-              title="Continue →"
-              onPress={handleContinue}
-              className="w-full sm:flex-[2]"
+            <div className="leader-row font-mono font-bold text-base text-ink mt-2">
+              <span>TOTAL</span>
+              <span className="leader" />
+              <span className="tabnum">{total.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button onClick={() => router.back()} className="btn btn-ghost flex-1">
+              Back
+            </button>
+            <button
+              onClick={handleContinue}
               disabled={dishes.length === 0}
-            />
+              className="btn btn-ink flex-[2]"
+            >
+              Next: review
+            </button>
           </div>
         </div>
       </div>
-
-    </div>
     </>
   );
 }

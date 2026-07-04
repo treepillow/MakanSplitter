@@ -1,65 +1,58 @@
+// "Thermal Receipt" design system tokens.
+// The source of truth is app/globals.css — this file exists for any
+// legacy consumer that still imports Colors directly.
 export const Colors = {
-  // Modern Minimal Color System
-  // Inspired by Apple, Linear, and Stripe design language
+  background: '#F0EDE5',           // page background (deep paper)
+  backgroundSecondary: '#FBF9F4',  // slip paper
+  backgroundTertiary: '#F0EDE5',
 
-  // Backgrounds - Soft, eye-friendly neutrals
-  background: '#FAFAF9',           // Warm off-white (easier on eyes)
-  backgroundSecondary: '#F5F5F4',  // Subtle warm gray
-  backgroundTertiary: '#E7E5E4',   // Light warm gray for cards
+  card: '#FBF9F4',
+  cardHover: '#FFFEFB',
+  cardBorder: '#E3DED3',
 
-  // Card/Surface colors - Solid, no transparency
-  card: '#FFFFFF',
-  cardHover: '#F8F9FA',
-  cardBorder: '#E9ECEF',
+  primary: '#29242E',              // thermal ink
+  primaryHover: '#3B3545',
+  primaryLight: '#F0EDE5',
 
-  // Primary Brand Color - Single green accent
-  primary: '#10B981',              // Modern emerald green
-  primaryHover: '#059669',         // Darker on hover
-  primaryLight: '#D1FAE5',         // Light tint for backgrounds
+  accent: '#C63B2A',               // rubber stamp red
 
-  // Neutrals - Gray scale for text and borders
-  gray900: '#111827',              // Almost black for headings
-  gray800: '#1F2937',              // Dark gray for body text
-  gray700: '#374151',              // Medium gray
-  gray600: '#4B5563',              //
-  gray500: '#6B7280',              // Muted text
-  gray400: '#9CA3AF',              // Placeholder text
-  gray300: '#D1D5DB',              // Borders
-  gray200: '#E5E7EB',              // Dividers
-  gray100: '#F3F4F6',              // Subtle backgrounds
-  gray50: '#F9FAFB',               // Lightest gray
+  gray900: '#29242E',
+  gray800: '#3B3545',
+  gray700: '#524C5A',
+  gray600: '#6F6A75',
+  gray500: '#6F6A75',
+  gray400: '#A19BA6',
+  gray300: '#C9C3B6',
+  gray200: '#E3DED3',
+  gray100: '#F0EDE5',
+  gray50: '#FBF9F4',
 
-  // Status Colors - Subtle and professional
-  success: '#10B981',              // Green
-  successLight: '#D1FAE5',
-  warning: '#F59E0B',              // Amber
-  warningLight: '#FEF3C7',
-  error: '#EF4444',                // Red
-  errorLight: '#FEE2E2',
+  success: '#23684B',
+  successLight: '#E3EDE4',
+  warning: '#96601A',
+  warningLight: '#F5EBD8',
+  error: '#C63B2A',
+  errorLight: '#F7E5E1',
 
-  // Text Colors - High contrast, readable
-  text: '#111827',                 // Dark gray, not pure black
-  textSecondary: '#6B7280',        // Medium gray
-  textMuted: '#9CA3AF',            // Light gray
+  text: '#29242E',
+  textSecondary: '#6F6A75',
+  textMuted: '#A19BA6',
 
-  // Border Colors - Subtle and minimal
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
-  borderDark: '#D1D5DB',
+  border: '#E3DED3',
+  borderLight: '#EDE9DF',
+  borderDark: '#C9C3B6',
 
-  // Special Colors
-  white: '#FFFFFF',
-  black: '#000000',
-  overlay: 'rgba(0, 0, 0, 0.5)',
-  shadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-  shadowMd: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-  shadowLg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+  white: '#FFFEFB',
+  black: '#29242E',
+  overlay: 'rgba(41, 36, 46, 0.5)',
+  shadow: '0 1px 2px rgba(41, 36, 46, 0.05)',
+  shadowMd: '0 4px 6px -1px rgba(41, 36, 46, 0.1)',
+  shadowLg: '0 12px 28px -18px rgba(41, 36, 46, 0.18)',
 
-  // Legacy support (for components not yet updated)
-  glassBackground: '#FFFFFF',
-  glassBorder: '#E5E7EB',
+  // Legacy aliases
+  glassBackground: '#FBF9F4',
+  glassBorder: '#E3DED3',
   primaryGlow: 'transparent',
-  secondary: '#10B981',
-  accent: '#10B981',
-  borderGlow: '#E5E7EB',
+  secondary: '#29242E',
+  borderGlow: '#E3DED3',
 };

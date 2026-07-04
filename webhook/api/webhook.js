@@ -474,8 +474,7 @@ function formatBillMessage(bill) {
 
 function formatSelection(bill, date) {
   let msg = `🧾 *${sanitizeForTelegram(bill.restaurantName || 'Bill Split')}*\n`;
-  msg += `📅 ${date}\n`;
-  msg += `💰 Total: $${tgMoney(bill.total)}\n\n`;
+  msg += `📅 ${date}\n\n`;
   msg += `━━━━━━━━━━━━━━━━━━\n\n`;
   msg += `*SELECT YOUR DISHES:*\n\n`;
 
@@ -510,14 +509,16 @@ function formatSelection(bill, date) {
 }
 
 function formatPayment(bill, date) {
-  let msg = `🧾 *${sanitizeForTelegram(bill.restaurantName)}*\n`;
-  msg += `📅 ${date}\n`;
-  msg += `💰 Total: $${tgMoney(bill.total)}\n`;
-  msg += `🔒 *Split Calculated\\!*\n\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n\n`;
-
   const paid = bill.participants.filter(p => p.hasPaid);
   const pending = bill.participants.filter(p => !p.hasPaid);
+  const received = paid.reduce((sum, p) => sum + (p.amountOwed || 0), 0);
+
+  let msg = `🧾 *${sanitizeForTelegram(bill.restaurantName)}*\n`;
+  msg += `📅 ${date}\n`;
+  msg += `🔒 *Split Calculated\\!*\n\n`;
+  msg += `💰 Expected Amount: $${tgMoney(bill.total)}\n`;
+  msg += `✅ Amount Received: $${tgMoney(received)}\n\n`;
+  msg += `━━━━━━━━━━━━━━━━━━\n\n`;
 
   if (paid.length) {
     msg += `*✅ PAID \\(${paid.length}\\)*\n`;

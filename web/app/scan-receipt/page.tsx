@@ -2,13 +2,11 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Toast } from '@/components/Toast';
 import { useBill } from '@/context/BillContext';
-import { Colors } from '@/constants/colors';
-import { canScan, incrementScan, getRemaining, getScanCount, getTimeUntilReset, getDailyLimit } from '@/lib/scanLimits';
-import { Camera, Upload, Edit2, Trash2, Plus, Check, X } from 'lucide-react';
+import { canScan, incrementScan, getRemaining, getTimeUntilReset, getDailyLimit } from '@/lib/scanLimits';
+import { Edit2, Trash2, Plus, Check, X } from 'lucide-react';
 
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -16,19 +14,19 @@ import 'react-image-crop/dist/ReactCrop.css';
 export default function ScanReceiptPage() {
   const router = useRouter();
   const { setCurrentBill } = useBill();
-  
+
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null); 
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // State
   const [image, setImage] = useState<string | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
-  
+
   // React-Image-Crop State
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
-  
+
   const [showCropper, setShowCropper] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -58,7 +56,7 @@ export default function ScanReceiptPage() {
     reader.onload = (event) => {
       setImage(event.target?.result as string);
       setShowCropper(true);
-      setCrop(undefined); 
+      setCrop(undefined);
       setCompletedCrop(null);
     };
     reader.readAsDataURL(file);
@@ -71,7 +69,7 @@ export default function ScanReceiptPage() {
     const cropHeight = height * 0.9;
     const x = (width - cropWidth) / 2;
     const y = (height - cropHeight) / 2;
-    
+
     setCrop({
       unit: 'px',
       x,
@@ -108,7 +106,7 @@ export default function ScanReceiptPage() {
 
     ctx.save();
     ctx.translate(-cropX, -cropY);
-    
+
     ctx.drawImage(
       image,
       0,
@@ -129,9 +127,9 @@ export default function ScanReceiptPage() {
   const handleCropConfirm = async () => {
     // If no crop is set, or crop is invalid, use original
     if (!completedCrop || completedCrop.width === 0 || completedCrop.height === 0) {
-        setCroppedImage(image);
-        setShowCropper(false);
-        return;
+      setCroppedImage(image);
+      setShowCropper(false);
+      return;
     }
     const cropped = await createCroppedImage();
     if (cropped) {
@@ -143,7 +141,7 @@ export default function ScanReceiptPage() {
   const handleScanReceipt = async () => {
     const imageToScan = croppedImage || image;
     if (!imageToScan) {
-      setToast({ message: 'Please upload an image first', type: 'error' });
+      setToast({ message: 'Upload an image first', type: 'error' });
       return;
     }
 
@@ -160,7 +158,7 @@ export default function ScanReceiptPage() {
     setProgress(20);
 
     try {
-      setToast({ message: 'Analyzing receipt with AI...', type: 'info' });
+      setToast({ message: 'Reading the receipt…', type: 'info' });
       setProgress(40);
 
       // Call the Gemini API route
@@ -198,14 +196,14 @@ export default function ScanReceiptPage() {
       setScannedDishes(dishes);
 
       if (dishes.length === 0) {
-        setToast({ message: 'No dishes found. Please try manual entry.', type: 'warning' });
+        setToast({ message: 'No dishes found. Try manual entry instead.', type: 'warning' });
       } else {
-        setToast({ message: `Found ${dishes.length} dishes!`, type: 'success' });
+        setToast({ message: `Found ${dishes.length} dishes`, type: 'success' });
       }
     } catch (error) {
       console.error('OCR Error:', error);
       setToast({
-        message: error instanceof Error ? error.message : 'Failed to scan receipt. Please try again.',
+        message: error instanceof Error ? error.message : 'Scan failed. Try again.',
         type: 'error',
       });
     } finally {
@@ -213,7 +211,6 @@ export default function ScanReceiptPage() {
       setProgress(0);
     }
   };
-
 
   // Dish editing functions
   const handleEditDish = (index: number) => {
@@ -227,7 +224,7 @@ export default function ScanReceiptPage() {
 
     const price = parseFloat(editDishPrice);
     if (!editDishName.trim() || isNaN(price) || price <= 0) {
-      setToast({ message: 'Please enter a valid dish name and price', type: 'error' });
+      setToast({ message: 'Enter a valid dish name and price', type: 'error' });
       return;
     }
 
@@ -274,7 +271,7 @@ export default function ScanReceiptPage() {
 
   const handleContinue = () => {
     if (!paidBy.trim()) {
-      setToast({ message: 'Please enter who paid the bill', type: 'error' });
+      setToast({ message: 'Enter who paid the bill', type: 'error' });
       return;
     }
 
@@ -282,12 +279,12 @@ export default function ScanReceiptPage() {
     const serviceCharge = parseFloat(serviceChargePercentage) || 0;
 
     if (gst < 0 || gst > 100) {
-      setToast({ message: 'GST percentage must be between 0 and 100', type: 'error' });
+      setToast({ message: 'GST must be between 0 and 100', type: 'error' });
       return;
     }
 
     if (serviceCharge < 0 || serviceCharge > 100) {
-      setToast({ message: 'Service charge percentage must be between 0 and 100', type: 'error' });
+      setToast({ message: 'Service charge must be between 0 and 100', type: 'error' });
       return;
     }
 
@@ -307,450 +304,293 @@ export default function ScanReceiptPage() {
   return (
     <>
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
-      <div className="min-h-screen" style={{ backgroundColor: Colors.background }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <div className="min-h-screen py-12 px-5 sm:px-8">
+        <div className="max-w-lg mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center" style={{ backgroundColor: Colors.primaryLight }}>
-                <Camera size={36} style={{ color: Colors.primary }} className="sm:w-12 sm:h-12" />
-              </div>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-bold mb-3" style={{ color: Colors.text }}>
-              Scan Receipt
+          <div className="mb-8">
+            <p className="starline mb-4">★ AI does the typing ★</p>
+            <h1 className="font-mono font-extrabold uppercase text-3xl tracking-tight text-ink mb-2">
+              Scan receipt
             </h1>
-            <p className="text-sm sm:text-base mb-4" style={{ color: Colors.textSecondary }}>
-              Upload a photo of your receipt to auto-detect dishes
+            <p className="text-ink-soft mb-3">
+              Upload a photo, crop to the items, and every dish is read for you.
             </p>
-            <div
-              className="max-w-2xl mx-auto rounded-lg p-6 text-left"
-              style={{ backgroundColor: Colors.backgroundTertiary }}
-            >
-              <p className="text-sm font-semibold mb-4" style={{ color: Colors.text }}>
-                How it works:
-              </p>  
-              <ol className="text-sm space-y-3" style={{ color: Colors.textSecondary }}>
-                <li>1. Upload a clear photo of your receipt</li>
-                <li>2. Crop to focus ONLY on the items (drag corners)</li>
-                <li>3. AI will scan and extract dishes with prices</li>
-                <li>4. Review and confirm the details</li>
-              </ol>
-            </div>
-
-            {/* Free Tier Transparency Banner */}
-            <div
-              className="max-w-2xl mx-auto rounded-lg p-4 mb-6 border"
-              style={{
-                backgroundColor: Colors.card,
-                borderColor: Colors.primary,
-              }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-1">
-                  <p className="text-sm font-semibold mb-2" style={{ color: Colors.text }}>
-                    Free AI-Powered Scanning
-                  </p>
-                  <p className="text-xs mb-2" style={{ color: Colors.textSecondary }}>
-                    We use Google Gemini AI for accurate receipt scanning. To keep this service free,
-                    we limit scans to <strong>1,500 per day</strong> (resets at midnight Pacific time).
-                  </p>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span style={{ color: Colors.primary }} className="font-semibold">
-                      {scansRemaining.toLocaleString()} scans remaining today
-                    </span>
-                    <span style={{ color: Colors.textSecondary }}>
-                      • Resets in {getTimeUntilReset()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-ink-faint">
+              {scansRemaining.toLocaleString()} free scans left today · resets in {getTimeUntilReset()}
+            </p>
           </div>
 
-          <div className="max-w-2xl mx-auto">
-            {/* Image Upload */}
-            {!image ? (
-              <div
-                className="rounded-2xl p-12 border-2 border-dashed text-center cursor-pointer hover:border-opacity-80 transition-all"
-                style={{ borderColor: Colors.primary }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center" style={{ backgroundColor: Colors.primaryLight }}>
-                    <Upload size={32} style={{ color: Colors.primary }} />
+          {/* Image Upload */}
+          {!image ? (
+            <button
+              className="w-full border border-dashed border-rule-dash rounded-sm bg-paper px-8 py-16 text-center cursor-pointer hover:border-ink transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <p className="font-mono font-bold uppercase tracking-[0.12em] text-ink mb-2">
+                Drop the receipt here
+              </p>
+              <p className="text-sm text-ink-soft mb-1">
+                Click to upload a photo — JPG, PNG or HEIC
+              </p>
+              <p className="text-xs text-ink-faint">
+                Crop tightly around the items for the best read.
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </button>
+          ) : (
+            <div>
+              {/* Cropper modal */}
+              {showCropper && image && (
+                <div className="fixed inset-0 z-50 flex flex-col bg-ink">
+                  <div className="flex-none p-4 text-center">
+                    <h2 className="font-mono font-bold uppercase tracking-[0.14em] text-paper">
+                      Crop receipt
+                    </h2>
+                    <p className="text-sm text-paper/60">
+                      Drag the corners to frame just the items
+                    </p>
+                  </div>
+
+                  <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+                    <ReactCrop
+                      crop={crop}
+                      onChange={(c) => setCrop(c)}
+                      onComplete={(c) => setCompletedCrop(c)}
+                      className="max-h-full max-w-full"
+                    >
+                      <img
+                        ref={imgRef}
+                        src={image}
+                        alt="Receipt to crop"
+                        onLoad={onImageLoad}
+                        style={{
+                          maxHeight: '70vh',
+                          maxWidth: '100%',
+                          objectFit: 'contain',
+                        }}
+                      />
+                    </ReactCrop>
+                  </div>
+
+                  <div className="flex-none p-6 border-t border-dashed border-paper/20">
+                    <div className="flex gap-3 max-w-lg mx-auto">
+                      <button
+                        onClick={() => {
+                          setShowCropper(false);
+                          setImage(null);
+                        }}
+                        className="btn btn-ghost flex-1 !text-paper !border-paper/40 hover:!border-paper"
+                      >
+                        Cancel
+                      </button>
+                      <button onClick={handleCropConfirm} className="btn btn-chop flex-[2]">
+                        Confirm crop
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <p className="text-lg font-semibold mb-2" style={{ color: Colors.text }}>
-                  Click to upload receipt
-                </p>
-                <p className="text-sm" style={{ color: Colors.textSecondary }}>
-                  Supports JPG, PNG, HEIC
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </div>
-            ) : (
-              <div>
-                {/* ================================================================
-                   UPDATED CROPPER MODAL STRUCTURE
-                   ================================================================
-                   1. Fixed, Full Screen, Flex Column Layout.
-                   2. Header stays top, Buttons stay bottom.
-                   3. Middle section (flex-1) holds the image.
-                   4. Image has max-height: 70vh to ensure it fits.
-                */}
-                {showCropper && image && (
-                  <div className="fixed inset-0 z-50 flex flex-col bg-black">
-                    
-                    {/* MODAL HEADER */}
-                    <div className="flex-none p-4 text-center bg-black bg-opacity-50">
-                       <h2 className="text-xl font-bold text-white">Crop Receipt</h2>
-                       <p className="text-sm text-gray-300">Drag corners to select items</p>
-                    </div>
+              )}
 
-                    {/* MODAL BODY (Image Container) */}
-                    <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-                       <ReactCrop
-                          crop={crop}
-                          onChange={(c) => setCrop(c)}
-                          onComplete={(c) => setCompletedCrop(c)}
-                          className="max-h-full max-w-full"
-                        >
-                          <img 
-                            ref={imgRef}
-                            src={image} 
-                            alt="Crop me" 
-                            onLoad={onImageLoad}
-                            // This ensures the image respects the container height
-                            // and scales down properly without getting cutoff
-                            style={{ 
-                              maxHeight: '70vh', 
-                              maxWidth: '100%', 
-                              objectFit: 'contain' 
-                            }}
-                          />
-                        </ReactCrop>
-                    </div>
-
-                    {/* MODAL FOOTER (Buttons) */}
-                    <div className="flex-none p-6 bg-black border-t border-gray-800">
-                      <div className="flex gap-4 max-w-lg mx-auto">
-                        <Button
-                          title="Cancel"
-                          variant="secondary"
-                          onPress={() => {
-                            setShowCropper(false);
-                            setImage(null);
-                          }}
-                          className="flex-1"
-                        />
-                        <Button
-                          title="Confirm Crop ✓"
-                          onPress={handleCropConfirm}
-                          className="flex-[2]"
-                        />
-                      </div>
-                    </div>
-
-                  </div>
-                )}
-
-                {/* Image Preview (Post Crop) */}
-                {!showCropper && (
-                  <div
-                    className="rounded-2xl p-4 mb-6 border"
-                    style={{
-                      backgroundColor: Colors.card,
-                      borderColor: Colors.border,
-                    }}
-                  >
-                    <img
-                      src={croppedImage || image}
-                      alt="Receipt"
-                      className="w-full rounded-lg"
-                    />
-                    {croppedImage && (
-                      <button
-                        onClick={() => setShowCropper(true)}
-                        className="mt-3 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                        style={{
-                          backgroundColor: Colors.backgroundTertiary,
-                          color: Colors.primary,
-                        }}
-                      >
-                        Re-crop Image
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Progress Bar */}
-                {scanning && (
-                  <div
-                    className="rounded-xl p-6 mb-6"
-                    style={{ backgroundColor: Colors.card }}
-                  >
-                    <p className="text-sm font-semibold mb-3" style={{ color: Colors.text }}>
-                      Scanning... {progress}%
-                    </p>
-                    <div className="w-full h-2 rounded-full" style={{ backgroundColor: Colors.border }}>
-                      <div
-                        className="h-2 rounded-full transition-all"
-                        style={{
-                          width: `${progress}%`,
-                          backgroundColor: Colors.primary,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* OCR Result */}
-                {ocrText && !scanning && scannedDishes.length === 0 && (
-                  <div
-                    className="rounded-xl p-6 mb-6"
-                    style={{ backgroundColor: Colors.card }}
-                  >
-                    <h3 className="text-lg font-bold mb-3" style={{ color: Colors.text }}>
-                      Detected Text:
-                    </h3>
-                    <pre
-                      className="text-xs whitespace-pre-wrap p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto"
-                      style={{
-                        backgroundColor: Colors.backgroundTertiary,
-                        color: Colors.textSecondary,
-                      }}
-                    >
-                      {ocrText}
-                    </pre>
-                  </div>
-                )}
-
-                {/* Scanned Dishes & Bill Details Form */}
-                {scannedDishes.length > 0 && (
-                  <>
-                    <div
-                      className="rounded-xl p-6 mb-6 border"
-                      style={{
-                        backgroundColor: Colors.card,
-                        borderColor: Colors.border,
-                      }}
-                    >
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold" style={{ color: Colors.text }}>
-                          Found {scannedDishes.length} Dishes
-                        </h3>
-                        <button
-                          onClick={handleAddDish}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-                          style={{
-                            backgroundColor: Colors.primaryLight,
-                            color: Colors.primary,
-                          }}
-                        >
-                          <Plus size={16} />
-                          Add Dish
-                        </button>
-                      </div>
-                      <div className="space-y-3 max-h-80 overflow-y-auto">
-                        {scannedDishes.map((dish, idx) => (
-                          <div
-                            key={idx}
-                            className="rounded-lg p-3 border"
-                            style={{
-                              backgroundColor: editingDishIndex === idx ? Colors.backgroundSecondary : Colors.white,
-                              borderColor: Colors.border,
-                            }}
-                          >
-                            {editingDishIndex === idx ? (
-                              // Edit mode
-                              <div className="space-y-2">
-                                <input
-                                  type="text"
-                                  value={editDishName}
-                                  onChange={(e) => setEditDishName(e.target.value)}
-                                  placeholder="Dish name"
-                                  className="w-full px-3 py-2 rounded-lg border-2 text-sm outline-none"
-                                  style={{
-                                    borderColor: Colors.primary,
-                                    color: Colors.text,
-                                  }}
-                                />
-                                <input
-                                  type="number"
-                                  value={editDishPrice}
-                                  onChange={(e) => setEditDishPrice(e.target.value)}
-                                  placeholder="Price"
-                                  step="0.01"
-                                  className="w-full px-3 py-2 rounded-lg border-2 text-sm outline-none"
-                                  style={{
-                                    borderColor: Colors.primary,
-                                    color: Colors.text,
-                                  }}
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={handleSaveEdit}
-                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-                                    style={{
-                                      backgroundColor: Colors.success,
-                                      color: Colors.white,
-                                    }}
-                                  >
-                                    <Check size={16} />
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={handleCancelEdit}
-                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-                                    style={{
-                                      backgroundColor: Colors.backgroundTertiary,
-                                      color: Colors.textSecondary,
-                                    }}
-                                  >
-                                    <X size={16} />
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              // View mode
-                              <div className="flex justify-between items-center">
-                                <div className="flex-1">
-                                  <span className="text-sm font-medium" style={{ color: Colors.text }}>
-                                    {dish.name}
-                                  </span>
-                                  <span className="text-lg font-bold ml-3" style={{ color: Colors.primary }}>
-                                    ${dish.price.toFixed(2)}
-                                  </span>
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleEditDish(idx)}
-                                    className="p-2 rounded-lg transition-all"
-                                    style={{
-                                      backgroundColor: Colors.backgroundTertiary,
-                                      color: Colors.primary,
-                                    }}
-                                  >
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteDish(idx)}
-                                    className="p-2 rounded-lg transition-all"
-                                    style={{
-                                      backgroundColor: Colors.errorLight,
-                                      color: Colors.error,
-                                    }}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div
-                      className="rounded-xl p-6 mb-6 border space-y-6"
-                      style={{
-                        backgroundColor: Colors.card,
-                        borderColor: Colors.border,
-                      }}
-                    >
-                      <h3 className="text-lg font-bold mb-4" style={{ color: Colors.text }}>
-                        Bill Details
-                      </h3>
-                      <Input
-                        label="Who Paid the Bill?"
-                        value={paidBy}
-                        onChangeText={setPaidBy}
-                        placeholder="e.g. John, Me"
-                      />
-                      <Input
-                        label="GST (%)"
-                        value={gstPercentage}
-                        onChangeText={setGstPercentage}
-                        placeholder="9"
-                        type="number"
-                      />
-                      <Input
-                        label="Service Charge (%)"
-                        value={serviceChargePercentage}
-                        onChangeText={setServiceChargePercentage}
-                        placeholder="10"
-                        type="number"
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    title="Upload Different Image"
-                    variant="secondary"
-                    onPress={() => {
-                      setImage(null);
-                      setCroppedImage(null);
-                      setOcrText('');
-                      setProgress(0);
-                      setScannedDishes([]);
-                      setPaidBy('');
-                      setCrop(undefined);
-                      setCompletedCrop(null);
-                    }}
-                    className="w-full sm:flex-1"
+              {/* Image Preview (Post Crop) */}
+              {!showCropper && (
+                <div className="slip p-3 mb-6">
+                  <img
+                    src={croppedImage || image}
+                    alt="Receipt"
+                    className="w-full"
                   />
-                  {!ocrText ? (
-                    <Button
-                      title={scanning ? `Scanning... ${progress}%` : "Scan Receipt"}
-                      onPress={handleScanReceipt}
-                      disabled={scanning}
-                      className="w-full sm:flex-[2]"
-                    />
-                  ) : scannedDishes.length > 0 ? (
-                    <Button
-                      title="Continue to Summary →"
-                      onPress={handleContinue}
-                      className="w-full sm:flex-[2]"
-                      disabled={!paidBy.trim()}
-                    />
-                  ) : (
-                    <Button
-                      title="Manual Entry Instead"
-                      variant="secondary"
-                      onPress={() => router.push('/create-bill')}
-                      className="w-full sm:flex-1"
-                    />
+                  {croppedImage && (
+                    <button
+                      onClick={() => setShowCropper(true)}
+                      className="btn btn-text btn-sm mt-1"
+                    >
+                      Re-crop image
+                    </button>
                   )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Info */}
-            <div
-              className="mt-8 rounded-lg p-4"
-              style={{ backgroundColor: Colors.backgroundTertiary }}
-            >
-              <p className="text-xs text-center" style={{ color: Colors.textSecondary }}>
-                <strong>Tip:</strong> Crop tightly around the dish names and prices for the best accuracy.
-              </p>
+              {/* Progress Bar */}
+              {scanning && (
+                <div className="slip px-6 py-5 mb-6">
+                  <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink mb-3">
+                    Reading… <span className="tabnum">{progress}%</span>
+                  </p>
+                  <div className="w-full h-1.5 bg-rule">
+                    <div
+                      className="h-1.5 bg-ink transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* OCR Result (nothing parsed) */}
+              {ocrText && !scanning && scannedDishes.length === 0 && (
+                <div className="slip px-6 py-5 mb-6">
+                  <p className="mlabel mb-3">Detected text</p>
+                  <pre className="font-mono text-xs whitespace-pre-wrap p-4 bg-bright border border-rule rounded-sm overflow-x-auto max-h-64 overflow-y-auto text-ink-soft">
+                    {ocrText}
+                  </pre>
+                </div>
+              )}
+
+              {/* Scanned Dishes & Bill Details Form */}
+              {scannedDishes.length > 0 && (
+                <>
+                  <div className="slip px-6 py-6 mb-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="mlabel">
+                        {scannedDishes.length} {scannedDishes.length === 1 ? 'dish' : 'dishes'} found
+                      </p>
+                      <button onClick={handleAddDish} className="btn btn-ghost btn-sm">
+                        <Plus size={14} />
+                        Add dish
+                      </button>
+                    </div>
+                    <div className="space-y-1 max-h-80 overflow-y-auto">
+                      {scannedDishes.map((dish, idx) => (
+                        <div key={idx} className="py-1.5">
+                          {editingDishIndex === idx ? (
+                            // Edit mode
+                            <div className="space-y-2 border border-rule-dash rounded-sm p-3 bg-bright">
+                              <input
+                                type="text"
+                                value={editDishName}
+                                onChange={(e) => setEditDishName(e.target.value)}
+                                placeholder="Dish name"
+                                className="field text-sm"
+                              />
+                              <input
+                                type="number"
+                                value={editDishPrice}
+                                onChange={(e) => setEditDishPrice(e.target.value)}
+                                placeholder="Price"
+                                step="0.01"
+                                className="field field-mono text-sm"
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={handleSaveEdit} className="btn btn-paid btn-sm flex-1">
+                                  <Check size={14} />
+                                  Save
+                                </button>
+                                <button onClick={handleCancelEdit} className="btn btn-ghost btn-sm flex-1">
+                                  <X size={14} />
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            // View mode
+                            <div className="flex items-center gap-2">
+                              <div className="leader-row font-mono text-sm text-ink flex-1 min-w-0">
+                                <span className="truncate">{dish.name}</span>
+                                <span className="leader" />
+                                <span className="tabnum">{dish.price.toFixed(2)}</span>
+                              </div>
+                              <button
+                                onClick={() => handleEditDish(idx)}
+                                aria-label={`Edit ${dish.name}`}
+                                className="p-1.5 text-ink-faint hover:text-ink transition-colors"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDish(idx)}
+                                aria-label={`Remove ${dish.name}`}
+                                className="p-1.5 text-ink-faint hover:text-chop transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="slip px-6 py-6 mb-6">
+                    <p className="mlabel mb-5">Bill details</p>
+                    <div className="space-y-4">
+                      <Input
+                        label="Who paid?"
+                        value={paidBy}
+                        onChangeText={setPaidBy}
+                        placeholder="e.g. Aaron"
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input
+                          label="GST %"
+                          value={gstPercentage}
+                          onChangeText={setGstPercentage}
+                          placeholder="9"
+                          type="number"
+                        />
+                        <Input
+                          label="Service %"
+                          value={serviceChargePercentage}
+                          onChangeText={setServiceChargePercentage}
+                          placeholder="10"
+                          type="number"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setImage(null);
+                    setCroppedImage(null);
+                    setOcrText('');
+                    setProgress(0);
+                    setScannedDishes([]);
+                    setPaidBy('');
+                    setCrop(undefined);
+                    setCompletedCrop(null);
+                  }}
+                  className="btn btn-ghost w-full sm:flex-1"
+                >
+                  Different image
+                </button>
+                {!ocrText ? (
+                  <button
+                    onClick={handleScanReceipt}
+                    disabled={scanning}
+                    className="btn btn-ink w-full sm:flex-[2]"
+                  >
+                    {scanning ? `Reading… ${progress}%` : 'Scan receipt'}
+                  </button>
+                ) : scannedDishes.length > 0 ? (
+                  <button
+                    onClick={handleContinue}
+                    disabled={!paidBy.trim()}
+                    className="btn btn-ink w-full sm:flex-[2]"
+                  >
+                    Next: review
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => router.push('/create-bill')}
+                    className="btn btn-ghost w-full sm:flex-1"
+                  >
+                    Type it in instead
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>

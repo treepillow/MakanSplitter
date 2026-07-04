@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Colors } from '../constants/colors';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   title?: string;
@@ -14,6 +13,14 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: string;
   children?: React.ReactNode;
 }
+
+const VARIANT_CLASS: Record<string, string> = {
+  primary: 'btn-ink',
+  secondary: 'btn-ghost',
+  danger: 'btn-chop',
+  success: 'btn-paid',
+  text: 'btn-text',
+};
 
 export function Button({
   title,
@@ -32,89 +39,23 @@ export function Button({
     if (onClick) onClick();
   };
 
-  const getStyles = () => {
-    if (disabled) {
-      return {
-        backgroundColor: Colors.gray200,
-        color: Colors.textMuted,
-        border: `2px solid ${Colors.gray200}`,
-        cursor: 'not-allowed',
-      };
-    }
-
-    switch (variant) {
-      case 'success':
-        return {
-          backgroundColor: Colors.success,
-          color: Colors.white,
-          border: `2px solid ${Colors.success}`,
-        };
-      case 'danger':
-        return {
-          backgroundColor: Colors.error,
-          color: Colors.white,
-          border: `2px solid ${Colors.error}`,
-        };
-      case 'secondary':
-        return {
-          backgroundColor: Colors.white,
-          color: Colors.text,
-          border: `2px solid ${Colors.border}`,
-        };
-      case 'text':
-        return {
-          backgroundColor: 'transparent',
-          color: Colors.primary,
-          border: 'none',
-        };
-      default:
-        return {
-          backgroundColor: Colors.primary,
-          color: Colors.white,
-          border: `2px solid ${Colors.primary}`,
-        };
-    }
-  };
-
   return (
     <button
       onClick={handleClick}
       disabled={disabled || loading}
-      className={`rounded-lg px-8 py-3 font-semibold text-base transition-all disabled:cursor-not-allowed ${className}`}
-      style={getStyles()}
-      onMouseEnter={(e) => {
-        if (!disabled && variant !== 'text') {
-          if (variant === 'primary') {
-            e.currentTarget.style.backgroundColor = Colors.primaryHover;
-          } else if (variant === 'secondary') {
-            e.currentTarget.style.backgroundColor = Colors.backgroundSecondary;
-            e.currentTarget.style.borderColor = Colors.primary;
-          } else {
-            e.currentTarget.style.opacity = '0.9';
-          }
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled) {
-          const styles = getStyles();
-          e.currentTarget.style.backgroundColor = styles.backgroundColor;
-          e.currentTarget.style.borderColor = styles.border?.split(' ')[2] || '';
-          e.currentTarget.style.opacity = '1';
-        }
-      }}
+      className={`btn ${VARIANT_CLASS[variant] ?? 'btn-ink'} ${className}`}
       {...rest}
     >
       {loading ? (
-        <div className="flex items-center justify-center">
-          <div
-            className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
-          />
-        </div>
+        <span
+          className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
+          aria-label="Loading"
+        />
       ) : (
-        <div className="flex items-center justify-center gap-2">
-          {icon && <span className="text-xl">{icon}</span>}
+        <>
+          {icon && <span>{icon}</span>}
           {children || title}
-        </div>
+        </>
       )}
     </button>
   );
